@@ -1,3 +1,4 @@
+require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const bcrypt = require('bcryptjs');
@@ -69,8 +70,8 @@ async function init() {
 
 // ---------- auth ----------
 app.post('/api/register', async (req, res) => {
-  const { name, email, password, role, skills, city, company } = req.body;
-  if (!name || !email || !password || !['seeker', 'employer'].includes(role))
+  const { name, email, password, skills, city, company } = req.body; const role = 'seeker';
+  if (!name || !email || !password)
     return res.status(400).json({ error: 'Missing fields' });
   try {
     const hash = await bcrypt.hash(password, 10);
@@ -87,7 +88,12 @@ app.post('/api/login', async (req, res) => {
   const [[u]] = await pool.query('SELECT * FROM users WHERE email=?', [(req.body.email || '').toLowerCase()]);
   if (!u || !(await bcrypt.compare(req.body.password || '', u.password)))
     return res.status(401).json({ error: 'Invalid email or password' });
-  res.json({ token: jwt.sign({ id: u.id, role: u.role, name: u.name }, SECRET, { expiresIn: '7d' }), role: u.role, name: u.name });
+  res.json({ token: jwt.sign({ id: u.id, role: 'seeker', name: u.name }, SECRET, { expiresIn: '7d' }), role: 'seeker', name: u.name });
+});
+app.get('/api/ping', (req, res) => res.json({ ok: true }));
+app.post('/api/role', auth(), (req, res) => {
+  const role = req.body.role === 'employer' ? 'employer' : 'seeker';
+  res.json({ token: jwt.sign({ id: req.user.id, role, name: req.user.name }, SECRET, { expiresIn: '7d' }), role, name: req.user.name });
 });
 app.get('/api/me', auth(), async (req, res) => {
   const [[u]] = await pool.query('SELECT id,name,email,role,skills,city,company FROM users WHERE id=?', [req.user.id]);
@@ -95,8 +101,8 @@ app.get('/api/me', auth(), async (req, res) => {
 });
 app.put('/api/me', auth(), async (req, res) => {
   const { skills, city, company } = req.body;
-  await pool.query('UPDATE users SET skills=?, city=?, company=? WHERE id=?',
-    [norm(skills).join(','), city || '', company || '', req.user.id]);
+  await pool.query('UPDATE users SET skills=?, city=?, company=COALESCE(?,company) WHERE id=?',
+    [norm(skills).join(','), city || '', company ?? null, req.user.id]);
   res.json({ ok: true });
 });
 
@@ -127,7 +133,7 @@ app.post('/api/jobs', auth('employer'), async (req, res) => {
   const [[u]] = await pool.query('SELECT company FROM users WHERE id=?', [req.user.id]);
   const [r] = await pool.query(
     'INSERT INTO jobs(employer_id,title,company,city,job_type,salary_min,salary_max,exp_min,skills,description) VALUES(?,?,?,?,?,?,?,?,?,?)',
-    [req.user.id, j.title, u.company || req.user.name, j.city || '', j.job_type || 'Full-time',
+    [req.user.id, j.title, j.company || u.company || req.user.name, j.city || '', j.job_type || 'Full-time',
      +j.salary_min || 0, +j.salary_max || 0, +j.exp_min || 0, norm(j.skills).join(','), j.description || '']);
   res.json({ id: r.insertId });
 });
