@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Smart Skill Opportunity</title>
+<style>
+:root{--bg:#f5f7fb;--card:#fff;--tx:#1b2333;--mut:#6b7488;--pri:#4f46e5;--ok:#16a34a;--warn:#dc2626;--bd:#e3e7f0}
+@media(prefers-color-scheme:dark){:root{--bg:#0f1420;--card:#171e2e;--tx:#e8ecf5;--mut:#98a2b8;--bd:#2a3347}}
+*{box-sizing:border-box}body{margin:0;font-family:system-ui,Segoe UI,Roboto,sans-serif;background:var(--bg);color:var(--tx)}
+header{display:flex;align-items:center;justify-content:space-between;padding:12px 20px;background:var(--card);border-bottom:1px solid var(--bd);position:sticky;top:0;z-index:5;flex-wrap:wrap;gap:8px}
+.logo{font-weight:800;font-size:20px;color:var(--pri);cursor:pointer}.logo span{color:var(--tx)}
+nav{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+button,.btn{background:var(--pri);color:#fff;border:0;padding:8px 14px;border-radius:8px;cursor:pointer;font-size:14px}
+button.ghost{background:transparent;color:var(--pri);border:1px solid var(--pri)}
+main{max-width:980px;margin:20px auto;padding:0 16px}
+.hero{background:linear-gradient(135deg,#4f46e5,#7c3aed);color:#fff;padding:28px;border-radius:14px;margin-bottom:18px}
+.hero h1{margin:0 0 6px;font-size:26px}.hero p{margin:0 0 14px;opacity:.9}
+.bar{display:flex;gap:8px;flex-wrap:wrap}
+input,select,textarea{padding:9px 11px;border:1px solid var(--bd);border-radius:8px;background:var(--card);color:var(--tx);font-size:14px;width:100%}
+.bar input,.bar select{flex:1;min-width:130px}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:16px;margin-bottom:12px}
+.row{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.mut{color:var(--mut);font-size:13px}
+.chip{display:inline-block;padding:3px 9px;border-radius:99px;font-size:12px;margin:3px 4px 0 0;background:var(--bg);border:1px solid var(--bd)}
+.chip.y{background:#dcfce7;color:#166534;border-color:#86efac}.chip.n{background:#fee2e2;color:#991b1b;border-color:#fca5a5}
+.score{min-width:84px;text-align:center;font-weight:800;font-size:22px}
+.score small{display:block;font-size:11px;font-weight:500;color:var(--mut)}
+.form{max-width:460px;margin:auto}.form label{display:block;margin:10px 0 4px;font-size:13px;color:var(--mut)}
+.err{color:var(--warn);font-size:13px;margin-top:8px}
+h2{margin:18px 0 10px}
+</style>
+</head>
+<body>
+<header>
+  <div class="logo" onclick="go('home')">Smart<span>Skill</span> Opportunity</div>
+  <nav id="nav"></nav>
+</header>
+<main id="app"></main>
+
+<script>
+const $ = s => document.querySelector(s);
+const S = { token: localStorage.getItem('sso_token'), role: localStorage.getItem('sso_role'), name: localStorage.getItem('sso_name') };
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+async function api(path, method = 'GET', body) {
+  const r = await fetch('/api' + path, { method, headers: { 'Content-Type': 'application/json', ...(S.token ? { Authorization: 'Bearer ' + S.token } : {}) }, body: body ? JSON.stringify(body) : undefined });
+  const d = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(d.error || 'Something went wrong');
+  return d;
+}
+function setAuth(d) { Object.assign(S, d, { token: d.token }); localStorage.setItem('sso_token', d.token); localStorage.setItem('sso_role', d.role); localStorage.setItem('sso_name', d.name); }
+function logout() { localStorage.clear(); S.token = S.role = S.name = null; go('home'); }
+const chips = (arr, cls = '') => arr.map(s => `<span class="chip ${cls}">${esc(s)}</span>`).join('');
+const money = n => n ? '₹' + (n / 100000).toFixed(1) + ' LPA' : '';
+
+function nav() {
+  $('#nav').innerHTML = S.token
+    ? `<span class="mut">Hi, ${esc(S.name)}</span>` +
+      (S.role === 'seeker' ? `<button class="ghost" onclick="go('apps')">My Applications</button><button class="ghost" onclick="go('profile')">My Skills</button>`
+                           : `<button class="ghost" onclick="go('dash')">Dashboard</button><button class="ghost" onclick="go('post')">Post Job</button>`) +
+      `<button onclick="logout()">Logout</button>`
+    : `<button class="ghost" onclick="go('login')">Login</button><button onclick="go('register')">Sign up</button>`;
+}
+function go(v, arg) { nav(); (views[v] || views.home)(arg); window.scrollTo(0, 0); }
+
+const views = {
+  async home() {
+    $('#app').innerHTML = `
+    <div class="hero"><h1>Get hired for what you can do, not just what you wrote.</h1>
+      <p>Add your skills once — see your match % and missing skills for every job.</p>
+      <div class="bar"><input id="q" placeholder="Job title, company or skill"><input id="city" placeholder="City">
+      <select id="type"><option value="">Any type</option><option>Full-time</option><option>Internship</option><option>Part-time</option><option>Contract</option></select>
+      <button onclick="search()">Search</button></div></div>
+    <div id="list"></div>`;
+    search();
+  },
+  login() {
+    $('#app').innerHTML = `<div class="card form"><h2>Login</h2>
+      <label>Email</label><input id="email" type="email"><label>Password</label><input id="pw" type="password">
+      <div class="err" id="err"></div><p><button onclick="doLogin()">Login</button></p></div>`;
+  },
+  register() {
+    $('#app').innerHTML = `<div class="card form"><h2>Create account</h2>
+      <label>I am a</label><select id="role" onchange="toggleRole()"><option value="seeker">Job seeker</option><option value="employer">Employer</option></select>
+      <label>Full name</label><input id="name"><label>Email</label><input id="email" type="email"><label>Password</label><input id="pw" type="password">
+      <label>City</label><input id="rcity">
+      <div id="sk"><label>Your skills (comma separated)</label><input id="skills" placeholder="node.js, mysql, git"></div>
+      <div id="co" style="display:none"><label>Company name</label><input id="company"></div>
+      <div class="err" id="err"></div><p><button onclick="doRegister()">Sign up</button></p></div>`;
+  },
+  async profile() {
+    const u = await api('/me');
+    $('#app').innerHTML = `<div class="card form"><h2>My skills</h2><p class="mut">Jobs are ranked by how well these match.</p>
+      <label>Skills (comma separated)</label><input id="skills" value="${esc(u.skills)}"><label>City</label><input id="rcity" value="${esc(u.city)}">
+      <p><button onclick="saveProfile()">Save</button> <span id="err" class="mut"></span></p></div>`;
+  },
+  async apps() {
+    const a = await api('/my-applications');
+    $('#app').innerHTML = '<h2>My applications</h2>' + (a.map(x => `<div class="card row"><div><b>${esc(x.title)}</b><div class="mut">${esc(x.company)} · ${esc(x.city)}</div></div>
+      <div><span class="chip">${esc(x.status)}</span> <span class="chip y">${x.score}% match</span></div></div>`).join('') || '<p class="mut">No applications yet.</p>');
+  },
+  post() {
+    $('#app').innerHTML = `<div class="card form"><h2>Post a job</h2>
+      <label>Title</label><input id="t"><label>City</label><input id="c"><label>Type</label>
+      <select id="ty"><option>Full-time</option><option>Internship</option><option>Part-time</option><option>Contract</option></select>
+      <label>Salary min (₹/yr)</label><input id="smin" type="number"><label>Salary max (₹/yr)</label><input id="smax" type="number">
+      <label>Min experience (yrs)</label><input id="exp" type="number" value="0">
+      <label>Required skills (comma separated)</label><input id="rs" placeholder="react, css, git">
+      <label>Description</label><textarea id="d" rows="4"></textarea><div class="err" id="err"></div><p><button onclick="postJob()">Publish</button></p></div>`;
+  },
+  async dash() {
+    const jobs = await api('/my-jobs');
+    $('#app').innerHTML = '<h2>My job posts</h2>' + (jobs.map(j => `<div class="card"><div class="row"><div><b>${esc(j.title)}</b><div class="mut">${esc(j.city)} · ${j.applicants} applicant(s)</div></div>
+      <button class="ghost" onclick="applicants(${j.id})">View ranked applicants</button></div><div id="ap${j.id}"></div></div>`).join('') || '<p class="mut">No jobs posted yet.</p>');
+  }
+};
+
+async function search() {
+  const p = new URLSearchParams({ q: $('#q').value, city: $('#city').value, type: $('#type').value });
+  const jobs = await api('/jobs?' + p);
+  $('#list').innerHTML = jobs.map(j => `<div class="card row"><div style="flex:1;min-width:240px">
+    <b>${esc(j.title)}</b><div class="mut">${esc(j.company)} · ${esc(j.city)} · ${esc(j.job_type)} · ${j.exp_min}+ yrs ${j.salary_max ? '· ' + money(j.salary_min) + ' – ' + money(j.salary_max) : ''}</div>
+    <p class="mut">${esc(j.description)}</p>
+    ${j.match ? chips(j.match.matched, 'y') + chips(j.match.missing, 'n') : chips(j.skills.split(','))}</div>
+    <div>${j.match ? `<div class="score" style="color:${j.match.score >= 60 ? 'var(--ok)' : 'var(--warn)'}">${j.match.score}%<small>skill match</small></div>` : ''}
+    ${S.role === 'seeker' ? `<button onclick="apply(${j.id})">Apply</button>` : ''}</div></div>`).join('') || '<p class="mut">No jobs found.</p>';
+}
+async function doLogin() {
+  try { setAuth(await api('/login', 'POST', { email: $('#email').value, password: $('#pw').value })); go('home'); }
+  catch (e) { $('#err').textContent = e.message; }
+}
+function toggleRole() { const e = $('#role').value === 'employer'; $('#co').style.display = e ? '' : 'none'; $('#sk').style.display = e ? 'none' : ''; }
+async function doRegister() {
+  try {
+    setAuth(await api('/register', 'POST', { role: $('#role').value, name: $('#name').value, email: $('#email').value, password: $('#pw').value, city: $('#rcity').value, skills: $('#skills').value, company: $('#company').value }));
+    go(S.role === 'employer' ? 'post' : 'home');
+  } catch (e) { $('#err').textContent = e.message; }
+}
+async function saveProfile() { await api('/me', 'PUT', { skills: $('#skills').value, city: $('#rcity').value }); $('#err').textContent = 'Saved ✓'; }
+async function apply(id) {
+  if (!S.token) return go('login');
+  try { await api(`/jobs/${id}/apply`, 'POST'); alert('Applied!'); } catch (e) { alert(e.message); }
+}
+async function postJob() {
+  try {
+    await api('/jobs', 'POST', { title: $('#t').value, city: $('#c').value, job_type: $('#ty').value, salary_min: $('#smin').value, salary_max: $('#smax').value, exp_min: $('#exp').value, skills: $('#rs').value, description: $('#d').value });
+    go('dash');
+  } catch (e) { $('#err').textContent = e.message; }
+}
+async function applicants(id) {
+  const a = await api(`/jobs/${id}/applicants`);
+  $('#ap' + id).innerHTML = a.map(x => `<div class="row" style="margin-top:10px;border-top:1px solid var(--bd);padding-top:10px"><div><b>${esc(x.name)}</b> <span class="mut">${esc(x.email)} · ${esc(x.city)}</span><div>${chips(x.skills.split(','))}</div></div>
+    <div><span class="chip y">${x.score}% match</span> <select onchange="setStatus(${x.id},this.value)">${['Applied', 'Shortlisted', 'Rejected', 'Hired'].map(s => `<option ${s === x.status ? 'selected' : ''}>${s}</option>`).join('')}</select></div></div>`).join('') || '<p class="mut">No applicants yet.</p>';
+}
+const setStatus = (id, status) => api('/applications/' + id, 'PUT', { status });
+go('home');
+</script>
+</body>
+</html>
