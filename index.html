@@ -28,7 +28,7 @@ input,select,textarea{padding:9px 11px;border:1px solid var(--bd);border-radius:
 .score small{display:block;font-size:11px;font-weight:500;color:var(--mut)}
 .form{max-width:460px;margin:auto}.form label{display:block;margin:10px 0 4px;font-size:13px;color:var(--mut)}
 .err{color:var(--warn);font-size:13px;margin-top:8px}
-h2{margin:18px 0 10px}
+h2{margin:18px 0 10px}.pick{width:280px;text-align:center;cursor:pointer}.pick:hover{border-color:var(--pri)}
 </style>
 </head>
 <body>
@@ -36,33 +36,86 @@ h2{margin:18px 0 10px}
   <div class="logo" onclick="go('home')">Smart<span>Skill</span> Opportunity</div>
   <nav id="nav"></nav>
 </header>
+<div id="mode" style="background:#e0e7ff;color:#312e81;padding:8px 16px;font-size:13px;text-align:center"></div>
 <main id="app"></main>
- 
+
 <script>
 const $ = s => document.querySelector(s);
-const S = { token: localStorage.getItem('sso_token'), role: localStorage.getItem('sso_role'), name: localStorage.getItem('sso_name') };
+const S = { token: null, role: null, name: null };
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-async function api(path, method = 'GET', body) {
+
+// ---------- DEMO BACKEND (in-memory, replaces the Express/MySQL API) ----------
+const norm = s => String(s || '').split(',').map(x => x.trim().toLowerCase()).filter(Boolean);
+const match = (have, need) => { const h = new Set(norm(have)), n = norm(need); const m = n.filter(s => h.has(s)); return { score: n.length ? Math.round(m.length / n.length * 100) : 0, matched: m, missing: n.filter(s => !h.has(s)) }; };
+const DB = {
+  users: [
+    { id: 1, name: 'Demo Seeker', email: 'seeker@demo.com', password: 'demo', role: 'seeker', skills: 'node.js,express,mysql,git,html,css,javascript', city: 'Hyderabad' },
+    { id: 2, name: 'Demo Employer', email: 'employer@demo.com', password: 'demo', role: 'employer', company: 'TechNova', city: 'Hyderabad', skills: '' },
+    { id: 3, name: 'Ananya R', email: 'ananya@mail.com', password: 'x', role: 'seeker', skills: 'node.js,express,mysql,rest api,git', city: 'Pune' },
+    { id: 4, name: 'Kiran P', email: 'kiran@mail.com', password: 'x', role: 'seeker', skills: 'html,css,python', city: 'Chennai' }
+  ],
+  jobs: [
+    { id: 1, employer_id: 2, title: 'Node.js Developer', company: 'TechNova', city: 'Hyderabad', job_type: 'Full-time', salary_min: 600000, salary_max: 1200000, exp_min: 1, skills: 'node.js,express,mysql,rest api,git', description: 'Build and maintain REST APIs.' },
+    { id: 2, employer_id: 0, title: 'Frontend Developer', company: 'PixelWorks', city: 'Bengaluru', job_type: 'Full-time', salary_min: 500000, salary_max: 1000000, exp_min: 1, skills: 'html,css,javascript,react,git', description: 'Build responsive UIs.' },
+    { id: 3, employer_id: 0, title: 'AI Intern', company: 'DataLeaf', city: 'Hyderabad', job_type: 'Internship', salary_min: 120000, salary_max: 240000, exp_min: 0, skills: 'python,machine learning,sql', description: 'Work on ML prototypes.' },
+    { id: 4, employer_id: 0, title: 'QA Engineer', company: 'QualityFirst', city: 'Pune', job_type: 'Full-time', salary_min: 400000, salary_max: 800000, exp_min: 2, skills: 'manual testing,selenium,jira,test cases', description: 'Own test cycles.' }
+  ],
+  apps: [{ id: 1, job_id: 1, seeker_id: 3, status: 'Applied' }, { id: 2, job_id: 1, seeker_id: 4, status: 'Applied' }],
+  uid: null
+};
+try { const s = localStorage.getItem('sso_db'); if (s) Object.assign(DB, JSON.parse(s)); } catch (e) {}
+const save = () => { try { localStorage.setItem('sso_db', JSON.stringify(DB)); } catch (e) {} };
+const u0 = DB.users.find(u => u.id === DB.uid); if (u0) Object.assign(S, { token: 'local', role: DB.role || 'seeker', name: u0.name });
+const me = () => DB.users.find(u => u.id === DB.uid);
+let REAL = false;
+async function apiReal(path, method = 'GET', body) {
   const r = await fetch('/api' + path, { method, headers: { 'Content-Type': 'application/json', ...(S.token ? { Authorization: 'Bearer ' + S.token } : {}) }, body: body ? JSON.stringify(body) : undefined });
-  const d = await r.json().catch(() => ({}));
-  if (!r.ok) throw new Error(d.error || 'Something went wrong');
-  return d;
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(j.error || 'Server error (' + r.status + ')');
+  return j;
 }
-function setAuth(d) { Object.assign(S, d, { token: d.token }); localStorage.setItem('sso_token', d.token); localStorage.setItem('sso_role', d.role); localStorage.setItem('sso_name', d.name); }
-function logout() { localStorage.clear(); S.token = S.role = S.name = null; go('home'); }
+async function api(...a) { if (REAL) return apiReal(...a); const r = await apiRaw(...a); save(); return r; }
+async function apiRaw(path, method = 'GET', body) {
+  const [p, qs] = path.split('?'); const q = new URLSearchParams(qs || ''); let m;
+  const fail = m => { throw new Error(m); };
+  if (p === '/login') { const u = DB.users.find(u => u.email === (body.email || '').toLowerCase() && u.password === body.password) || fail('Invalid email or password'); DB.uid = u.id; DB.role = 'seeker'; return { token: 'demo', role: 'seeker', name: u.name }; }
+  if (p === '/register') { if (!body.name || !body.email || !body.password) fail('Missing fields'); if (DB.users.some(u => u.email === body.email.toLowerCase())) fail('Email already registered');
+    const u = { id: DB.users.length + 1, ...body, email: body.email.toLowerCase(), skills: norm(body.skills).join(',') }; DB.users.push(u); DB.uid = u.id; DB.role = 'seeker'; return { token: 'demo', role: 'seeker', name: u.name }; }
+  if (p === '/role') { DB.role = body.role; return { token: 'demo', role: body.role, name: me().name }; }
+  if (p === '/me') { if (method === 'PUT') { Object.assign(me(), { skills: norm(body.skills).join(','), city: body.city }); return { ok: 1 }; } return me(); }
+  if (p === '/jobs' && method === 'GET') {
+    const t = (q.get('q') || '').toLowerCase(), c = (q.get('city') || '').toLowerCase(), ty = q.get('type');
+    let r = DB.jobs.filter(j => (!t || (j.title + j.company + j.skills).toLowerCase().includes(t)) && (!c || j.city.toLowerCase().includes(c)) && (!ty || j.job_type === ty)).slice().reverse();
+    const u = me(); if (u && u.role === 'seeker' && u.skills) { r = r.map(j => ({ ...j, match: match(u.skills, j.skills) })).sort((a, b) => b.match.score - a.match.score); }
+    return r;
+  }
+  if (p === '/jobs' && method === 'POST') { if (!body.title || !body.skills) fail('Title and skills required'); const j = { id: DB.jobs.length + 1, employer_id: DB.uid, ...body, company: body.company || me().company || me().name, salary_min: +body.salary_min || 0, salary_max: +body.salary_max || 0, exp_min: +body.exp_min || 0, skills: norm(body.skills).join(',') }; DB.jobs.push(j); return { id: j.id }; }
+  if (p === '/my-jobs') return DB.jobs.filter(j => j.employer_id === DB.uid).map(j => ({ ...j, applicants: DB.apps.filter(a => a.job_id === j.id).length }));
+  if ((m = p.match(/^\/jobs\/(\d+)\/applicants$/))) { const j = DB.jobs.find(j => j.id == m[1]); return DB.apps.filter(a => a.job_id == m[1]).map(a => { const u = DB.users.find(u => u.id === a.seeker_id); return { id: a.id, status: a.status, name: u.name, email: u.email, skills: u.skills, city: u.city, score: match(u.skills, j.skills).score }; }).sort((a, b) => b.score - a.score); }
+  if ((m = p.match(/^\/applications\/(\d+)$/))) { DB.apps.find(a => a.id == m[1]).status = body.status; return { ok: 1 }; }
+  if ((m = p.match(/^\/jobs\/(\d+)\/apply$/))) { if (DB.apps.some(a => a.job_id == m[1] && a.seeker_id === DB.uid)) fail('Already applied'); DB.apps.push({ id: DB.apps.length + 1, job_id: +m[1], seeker_id: DB.uid, status: 'Applied' }); return { ok: 1 }; }
+  if (p === '/my-applications') return DB.apps.filter(a => a.seeker_id === DB.uid).map(a => { const j = DB.jobs.find(j => j.id === a.job_id); return { status: a.status, score: match(me().skills, j.skills).score, title: j.title, company: j.company, city: j.city }; });
+  fail('Not found');
+}
+async function demoLogin(r) { setAuth(await api('/login', 'POST', { email: r + '@demo.com', password: 'demo' })); await pick(r); }
+function setAuth(d) { Object.assign(S, d, { token: d.token }); try { localStorage.setItem('sso_s', JSON.stringify({ token: S.token, role: S.role, name: S.name })); } catch (e) {}  }
+function logout() { DB.uid = null; save(); try { localStorage.removeItem('sso_s'); } catch (e) {} S.token = S.role = S.name = null; go('home'); }
 const chips = (arr, cls = '') => arr.map(s => `<span class="chip ${cls}">${esc(s)}</span>`).join('');
 const money = n => n ? '₹' + (n / 100000).toFixed(1) + ' LPA' : '';
- 
+
+let pending = null;
 function nav() {
-  $('#nav').innerHTML = S.token
-    ? `<span class="mut">Hi, ${esc(S.name)}</span>` +
+  $('#nav').innerHTML = `<button class="ghost" onclick="postClick()">+ Post a Job</button>` + (S.token
+    ? `<span class="mut">${esc(S.name)} · ${S.role === 'employer' ? 'Employer' : 'Job Seeker'}</span>` +
       (S.role === 'seeker' ? `<button class="ghost" onclick="go('apps')">My Applications</button><button class="ghost" onclick="go('profile')">My Skills</button>`
-                           : `<button class="ghost" onclick="go('dash')">Dashboard</button><button class="ghost" onclick="go('post')">Post Job</button>`) +
-      `<button onclick="logout()">Logout</button>`
-    : `<button class="ghost" onclick="go('login')">Login</button><button onclick="go('register')">Sign up</button>`;
+                           : `<button class="ghost" onclick="go('dash')">Dashboard</button>`) +
+      `<button class="ghost" onclick="go('choose')">Switch role</button><button onclick="logout()">Logout</button>`
+    : `<button class="ghost" onclick="go('login')">Login</button><button onclick="go('register')">Sign up</button>`);
 }
+function postClick() { if (!S.token) { pending = 'post'; return go('login'); } if (S.role === 'employer') go('post'); else { pending = 'post'; go('choose'); } }
+async function pick(role) { setAuth(await api('/role', 'POST', { role })); const p = pending; pending = null; go(role === 'employer' ? (p === 'post' ? 'post' : 'dash') : 'home'); }
 function go(v, arg) { nav(); (views[v] || views.home)(arg); window.scrollTo(0, 0); }
- 
+
 const views = {
   async home() {
     $('#app').innerHTML = `
@@ -77,16 +130,25 @@ const views = {
   login() {
     $('#app').innerHTML = `<div class="card form"><h2>Login</h2>
       <label>Email</label><input id="email" type="email"><label>Password</label><input id="pw" type="password">
-      <div class="err" id="err"></div><p><button onclick="doLogin()">Login</button></p></div>`;
+      <div class="err" id="err"></div><p><button onclick="doLogin()">Login</button></p>
+      <p class="mut">New here? <a href="#" onclick="go('register');return false">Create an account</a></p>
+      <hr style="border:0;border-top:1px solid var(--bd)"><p><b>Hiring?</b> <button class="ghost" onclick="pending='post';go('register')">+ Post a Job</button></p></div>`;
   },
   register() {
     $('#app').innerHTML = `<div class="card form"><h2>Create account</h2>
-      <label>I am a</label><select id="role" onchange="toggleRole()"><option value="seeker">Job seeker</option><option value="employer">Employer</option></select>
       <label>Full name</label><input id="name"><label>Email</label><input id="email" type="email"><label>Password</label><input id="pw" type="password">
       <label>City</label><input id="rcity">
-      <div id="sk"><label>Your skills (comma separated)</label><input id="skills" placeholder="node.js, mysql, git"></div>
-      <div id="co" style="display:none"><label>Company name</label><input id="company"></div>
-      <div class="err" id="err"></div><p><button onclick="doRegister()">Sign up</button></p></div>`;
+      <label>Your skills (job seekers, comma separated)</label><input id="skills" placeholder="node.js, mysql, git">
+      <label>Company name (employers)</label><input id="company">
+      <div class="err" id="err"></div><p><button onclick="doRegister()">Sign up</button></p>
+      <p class="mut">Already have an account? <a href="#" onclick="go('login');return false">Login</a></p></div>`;
+  },
+  choose() {
+    if (!S.token) return go('login');
+    $('#app').innerHTML = `<h2 style="text-align:center">How would you like to continue?</h2>
+      <div class="row" style="justify-content:center;gap:16px;margin-top:20px">
+      <div class="card pick" onclick="pick('seeker')"><div style="font-size:40px">🎯</div><h3>Job Seeker</h3><p class="mut">Find jobs matched to your skills and apply.</p></div>
+      <div class="card pick" onclick="pick('employer')"><div style="font-size:40px">🏢</div><h3>Employer</h3><p class="mut">Post jobs and see applicants ranked by skill match.</p></div></div>`;
   },
   async profile() {
     const u = await api('/me');
@@ -101,7 +163,7 @@ const views = {
   },
   post() {
     $('#app').innerHTML = `<div class="card form"><h2>Post a job</h2>
-      <label>Title</label><input id="t"><label>City</label><input id="c"><label>Type</label>
+      <label>Job title</label><input id="t"><label>Company</label><input id="co2"><label>City</label><input id="c"><label>Type</label>
       <select id="ty"><option>Full-time</option><option>Internship</option><option>Part-time</option><option>Contract</option></select>
       <label>Salary min (₹/yr)</label><input id="smin" type="number"><label>Salary max (₹/yr)</label><input id="smax" type="number">
       <label>Min experience (yrs)</label><input id="exp" type="number" value="0">
@@ -114,7 +176,7 @@ const views = {
       <button class="ghost" onclick="applicants(${j.id})">View ranked applicants</button></div><div id="ap${j.id}"></div></div>`).join('') || '<p class="mut">No jobs posted yet.</p>');
   }
 };
- 
+
 async function search() {
   const p = new URLSearchParams({ q: $('#q').value, city: $('#city').value, type: $('#type').value });
   let jobs; try { jobs = await api('/jobs?' + p); } catch (e) { $('#list').innerHTML = '<p class="err">Could not load jobs: ' + esc(e.message) + '</p>'; return; }
@@ -126,14 +188,14 @@ async function search() {
     ${S.role === 'seeker' ? `<button onclick="apply(${j.id})">Apply</button>` : ''}</div></div>`).join('') || '<p class="mut">No jobs found.</p>';
 }
 async function doLogin() {
-  try { setAuth(await api('/login', 'POST', { email: $('#email').value, password: $('#pw').value })); go('home'); }
+  try { setAuth(await api('/login', 'POST', { email: $('#email').value, password: $('#pw').value })); go('choose'); }
   catch (e) { $('#err').textContent = e.message; }
 }
 function toggleRole() { const e = $('#role').value === 'employer'; $('#co').style.display = e ? '' : 'none'; $('#sk').style.display = e ? 'none' : ''; }
 async function doRegister() {
   try {
-    setAuth(await api('/register', 'POST', { role: $('#role').value, name: $('#name').value, email: $('#email').value, password: $('#pw').value, city: $('#rcity').value, skills: $('#skills').value, company: $('#company').value }));
-    go(S.role === 'employer' ? 'post' : 'home');
+    setAuth(await api('/register', 'POST', { name: $('#name').value, email: $('#email').value, password: $('#pw').value, city: $('#rcity').value, skills: $('#skills').value, company: $('#company').value }));
+    go('choose');
   } catch (e) { $('#err').textContent = e.message; }
 }
 async function saveProfile() { await api('/me', 'PUT', { skills: $('#skills').value, city: $('#rcity').value }); $('#err').textContent = 'Saved ✓'; }
@@ -143,7 +205,7 @@ async function apply(id) {
 }
 async function postJob() {
   try {
-    await api('/jobs', 'POST', { title: $('#t').value, city: $('#c').value, job_type: $('#ty').value, salary_min: $('#smin').value, salary_max: $('#smax').value, exp_min: $('#exp').value, skills: $('#rs').value, description: $('#d').value });
+    await api('/jobs', 'POST', { title: $('#t').value, company: $('#co2').value, city: $('#c').value, job_type: $('#ty').value, salary_min: $('#smin').value, salary_max: $('#smax').value, exp_min: $('#exp').value, skills: $('#rs').value, description: $('#d').value });
     go('dash');
   } catch (e) { $('#err').textContent = e.message; }
 }
@@ -153,7 +215,12 @@ async function applicants(id) {
     <div><span class="chip y">${x.score}% match</span> <select onchange="setStatus(${x.id},this.value)">${['Applied', 'Shortlisted', 'Rejected', 'Hired'].map(s => `<option ${s === x.status ? 'selected' : ''}>${s}</option>`).join('')}</select></div></div>`).join('') || '<p class="mut">No applicants yet.</p>';
 }
 const setStatus = (id, status) => api('/applications/' + id, 'PUT', { status });
-go('home');
+(async () => {
+  try { const r = await fetch('/api/ping'); REAL = r.ok && (await r.json()).ok === true; } catch (e) {}
+  if (REAL) { try { Object.assign(S, JSON.parse(localStorage.getItem('sso_s') || '{}')); } catch (e) {} $('#mode').textContent = '✅ Connected to server database'; }
+  else $('#mode').innerHTML = 'Standalone mode (data saved in this browser). Quick login: <a href="#" onclick="demoLogin(\'seeker\');return false">Job Seeker</a> · <a href="#" onclick="demoLogin(\'employer\');return false">Employer</a>';
+  go('home');
+})();
 </script>
 </body>
 </html>
