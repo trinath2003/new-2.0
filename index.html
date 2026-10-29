@@ -37,7 +37,7 @@ h2{margin:18px 0 10px}
   <nav id="nav"></nav>
 </header>
 <main id="app"></main>
-
+ 
 <script>
 const $ = s => document.querySelector(s);
 const S = { token: localStorage.getItem('sso_token'), role: localStorage.getItem('sso_role'), name: localStorage.getItem('sso_name') };
@@ -52,7 +52,7 @@ function setAuth(d) { Object.assign(S, d, { token: d.token }); localStorage.setI
 function logout() { localStorage.clear(); S.token = S.role = S.name = null; go('home'); }
 const chips = (arr, cls = '') => arr.map(s => `<span class="chip ${cls}">${esc(s)}</span>`).join('');
 const money = n => n ? '₹' + (n / 100000).toFixed(1) + ' LPA' : '';
-
+ 
 function nav() {
   $('#nav').innerHTML = S.token
     ? `<span class="mut">Hi, ${esc(S.name)}</span>` +
@@ -62,7 +62,7 @@ function nav() {
     : `<button class="ghost" onclick="go('login')">Login</button><button onclick="go('register')">Sign up</button>`;
 }
 function go(v, arg) { nav(); (views[v] || views.home)(arg); window.scrollTo(0, 0); }
-
+ 
 const views = {
   async home() {
     $('#app').innerHTML = `
@@ -114,10 +114,10 @@ const views = {
       <button class="ghost" onclick="applicants(${j.id})">View ranked applicants</button></div><div id="ap${j.id}"></div></div>`).join('') || '<p class="mut">No jobs posted yet.</p>');
   }
 };
-
+ 
 async function search() {
   const p = new URLSearchParams({ q: $('#q').value, city: $('#city').value, type: $('#type').value });
-  const jobs = await api('/jobs?' + p);
+  let jobs; try { jobs = await api('/jobs?' + p); } catch (e) { $('#list').innerHTML = '<p class="err">Could not load jobs: ' + esc(e.message) + '</p>'; return; }
   $('#list').innerHTML = jobs.map(j => `<div class="card row"><div style="flex:1;min-width:240px">
     <b>${esc(j.title)}</b><div class="mut">${esc(j.company)} · ${esc(j.city)} · ${esc(j.job_type)} · ${j.exp_min}+ yrs ${j.salary_max ? '· ' + money(j.salary_min) + ' – ' + money(j.salary_max) : ''}</div>
     <p class="mut">${esc(j.description)}</p>
