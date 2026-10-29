@@ -1,226 +1,206 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Smart Skill Opportunity</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>SmartSkill Opportunity</title>
 <style>
-:root{--bg:#f5f7fb;--card:#fff;--tx:#1b2333;--mut:#6b7488;--pri:#4f46e5;--ok:#16a34a;--warn:#dc2626;--bd:#e3e7f0}
-@media(prefers-color-scheme:dark){:root{--bg:#0f1420;--card:#171e2e;--tx:#e8ecf5;--mut:#98a2b8;--bd:#2a3347}}
-*{box-sizing:border-box}body{margin:0;font-family:system-ui,Segoe UI,Roboto,sans-serif;background:var(--bg);color:var(--tx)}
-header{display:flex;align-items:center;justify-content:space-between;padding:12px 20px;background:var(--card);border-bottom:1px solid var(--bd);position:sticky;top:0;z-index:5;flex-wrap:wrap;gap:8px}
-.logo{font-weight:800;font-size:20px;color:var(--pri);cursor:pointer}.logo span{color:var(--tx)}
-nav{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
-button,.btn{background:var(--pri);color:#fff;border:0;padding:8px 14px;border-radius:8px;cursor:pointer;font-size:14px}
-button.ghost{background:transparent;color:var(--pri);border:1px solid var(--pri)}
-main{max-width:980px;margin:20px auto;padding:0 16px}
-.hero{background:linear-gradient(135deg,#4f46e5,#7c3aed);color:#fff;padding:28px;border-radius:14px;margin-bottom:18px}
-.hero h1{margin:0 0 6px;font-size:26px}.hero p{margin:0 0 14px;opacity:.9}
-.bar{display:flex;gap:8px;flex-wrap:wrap}
-input,select,textarea{padding:9px 11px;border:1px solid var(--bd);border-radius:8px;background:var(--card);color:var(--tx);font-size:14px;width:100%}
-.bar input,.bar select{flex:1;min-width:130px}
-.card{background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:16px;margin-bottom:12px}
-.row{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap}
-.mut{color:var(--mut);font-size:13px}
-.chip{display:inline-block;padding:3px 9px;border-radius:99px;font-size:12px;margin:3px 4px 0 0;background:var(--bg);border:1px solid var(--bd)}
-.chip.y{background:#dcfce7;color:#166534;border-color:#86efac}.chip.n{background:#fee2e2;color:#991b1b;border-color:#fca5a5}
-.score{min-width:84px;text-align:center;font-weight:800;font-size:22px}
-.score small{display:block;font-size:11px;font-weight:500;color:var(--mut)}
-.form{max-width:460px;margin:auto}.form label{display:block;margin:10px 0 4px;font-size:13px;color:var(--mut)}
-.err{color:var(--warn);font-size:13px;margin-top:8px}
-h2{margin:18px 0 10px}.pick{width:280px;text-align:center;cursor:pointer}.pick:hover{border-color:var(--pri)}
+:root{--bg:#f4f5fb;--card:#fff;--ink:#14162b;--mute:#62667f;--line:#e3e5f1;--brand:#4338ca;--brand2:#7c3aed;--ok:#15803d;--okbg:#dcfce7;--bad:#b91c1c;--badbg:#fee2e2;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);color-scheme:light}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0f1020;--card:#191b33;--ink:#eceefb;--mute:#9aa0c3;--line:#2b2e52;--brand:#818cf8;--brand2:#a78bfa;--okbg:#14532d;--ok:#86efac;--badbg:#7f1d1d;--bad:#fecaca;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#0f1020;--card:#191b33;--ink:#eceefb;--mute:#9aa0c3;--line:#2b2e52;--brand:#818cf8;--brand2:#a78bfa;--okbg:#14532d;--ok:#86efac;--badbg:#7f1d1d;--bad:#fecaca;color-scheme:dark}
+*{box-sizing:border-box}html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 "Segoe UI",system-ui,Arial,sans-serif}
+button,input,select{font:inherit;color:inherit}
+.btn{background:var(--brand);color:#fff;border:0;border-radius:10px;padding:9px 16px;cursor:pointer;font-weight:600}
+.btn.o{background:transparent;color:var(--brand);border:1.5px solid var(--brand)}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid var(--brand2);outline-offset:2px}
+input,select{background:var(--card);border:1.5px solid var(--line);border-radius:10px;padding:10px 12px;width:100%}
+nav{position:sticky;top:0;z-index:5;background:var(--card);border-bottom:1px solid var(--line);display:flex;align-items:center;gap:10px;padding:12px 20px;flex-wrap:wrap}
+.logo{font-weight:800;font-size:20px;color:var(--brand);margin-right:auto}.logo b{color:var(--ink)}
+.who{color:var(--mute);font-size:13px}
+.center{min-height:100vh;display:grid;place-items:center;padding:20px}
+.box{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:28px;width:min(430px,100%)}
+.box h2{margin:0 0 4px}.sub{color:var(--mute);margin:0 0 18px}
+.tabs{display:flex;gap:6px;margin-bottom:16px}.tabs button{flex:1;padding:9px;border-radius:10px;border:1.5px solid var(--line);background:none;cursor:pointer;font-weight:600}
+.tabs button.on{background:var(--brand);color:#fff;border-color:var(--brand)}
+.f{display:grid;gap:10px;margin-bottom:14px}
+.note{font-size:12px;color:var(--mute);margin-top:10px}
+.roles{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.role{border:1.5px solid var(--line);background:var(--card);border-radius:14px;padding:22px 12px;cursor:pointer;text-align:center;font-weight:700}
+.role span{display:block;font-weight:400;color:var(--mute);font-size:13px;margin-top:4px}
+.role:hover{border-color:var(--brand)}
+.layout{display:grid;grid-template-columns:260px minmax(0,1fr);gap:20px;max-width:1150px;margin:20px auto;padding:0 16px}
+@media(max-width:800px){.layout{grid-template-columns:1fr}}
+aside{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px;align-self:start;display:grid;gap:14px}
+aside h4{margin:0 0 6px;font-size:14px}
+.opt{display:flex;gap:8px;align-items:center;padding:3px 0;cursor:pointer}.opt input{width:auto}
+.range{display:flex;gap:8px;align-items:center}
+.list{display:grid;gap:12px}
+.job{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px 18px;display:flex;gap:14px;cursor:pointer;justify-content:space-between}
+.job:hover{border-color:var(--brand)}
+.job h3{margin:0}.meta{color:var(--mute);font-size:13px}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.chip{padding:2px 10px;border-radius:99px;font-size:12px;background:var(--okbg);color:var(--ok)}
+.chip.m{background:var(--badbg);color:var(--bad)}
+.pct{text-align:center;min-width:76px}.pct b{font-size:24px;display:block;line-height:1.1}.pct small{color:var(--mute)}
+.tag{display:inline-block;font-size:12px;padding:1px 9px;border-radius:99px;background:var(--line);margin-left:6px;vertical-align:middle}
+.applied{color:var(--ok);font-weight:700}
+.ov{position:fixed;inset:0;background:rgba(10,10,30,.5);opacity:0;pointer-events:none;transition:opacity .2s;z-index:20}
+.ov.on{opacity:1;pointer-events:auto}
+.slide{position:fixed;top:0;right:0;bottom:0;width:min(470px,100%);background:var(--card);z-index:21;transform:translateX(105%);transition:transform .25s;padding:24px;padding-top:calc(24px + env(safe-area-inset-top,0px));overflow:auto;border-left:1px solid var(--line)}
+.slide.on{transform:none}
+.x{float:right;background:none;border:0;font-size:26px;cursor:pointer;line-height:1}
+.modal{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);z-index:30;width:min(400px,92%)}
+.toast{position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ok);color:#fff;padding:11px 20px;border-radius:12px;z-index:40;font-weight:600}
+.toast{background:#15803d;color:#fff}
+.empty{text-align:center;color:var(--mute);padding:40px 10px}
+.row{display:flex;gap:10px;flex-wrap:wrap}.row>*{flex:1;min-width:140px}
 </style>
 </head>
 <body>
-<header>
-  <div class="logo" onclick="go('home')">Smart<span>Skill</span> Opportunity</div>
-  <nav id="nav"></nav>
-</header>
-<div id="mode" style="background:#e0e7ff;color:#312e81;padding:8px 16px;font-size:13px;text-align:center"></div>
-<main id="app"></main>
-
+<div id="app"></div>
+<div id="layer"></div>
 <script>
-const $ = s => document.querySelector(s);
-const S = { token: null, role: null, name: null };
-const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-
-// ---------- DEMO BACKEND (in-memory, replaces the Express/MySQL API) ----------
-const norm = s => String(s || '').split(',').map(x => x.trim().toLowerCase()).filter(Boolean);
-const match = (have, need) => { const h = new Set(norm(have)), n = norm(need); const m = n.filter(s => h.has(s)); return { score: n.length ? Math.round(m.length / n.length * 100) : 0, matched: m, missing: n.filter(s => !h.has(s)) }; };
-const DB = {
-  users: [
-    { id: 1, name: 'Demo Seeker', email: 'seeker@demo.com', password: 'demo', role: 'seeker', skills: 'node.js,express,mysql,git,html,css,javascript', city: 'Hyderabad' },
-    { id: 2, name: 'Demo Employer', email: 'employer@demo.com', password: 'demo', role: 'employer', company: 'TechNova', city: 'Hyderabad', skills: '' },
-    { id: 3, name: 'Ananya R', email: 'ananya@mail.com', password: 'x', role: 'seeker', skills: 'node.js,express,mysql,rest api,git', city: 'Pune' },
-    { id: 4, name: 'Kiran P', email: 'kiran@mail.com', password: 'x', role: 'seeker', skills: 'html,css,python', city: 'Chennai' }
-  ],
-  jobs: [
-    { id: 1, employer_id: 2, title: 'Node.js Developer', company: 'TechNova', city: 'Hyderabad', job_type: 'Full-time', salary_min: 600000, salary_max: 1200000, exp_min: 1, skills: 'node.js,express,mysql,rest api,git', description: 'Build and maintain REST APIs.' },
-    { id: 2, employer_id: 0, title: 'Frontend Developer', company: 'PixelWorks', city: 'Bengaluru', job_type: 'Full-time', salary_min: 500000, salary_max: 1000000, exp_min: 1, skills: 'html,css,javascript,react,git', description: 'Build responsive UIs.' },
-    { id: 3, employer_id: 0, title: 'AI Intern', company: 'DataLeaf', city: 'Hyderabad', job_type: 'Internship', salary_min: 120000, salary_max: 240000, exp_min: 0, skills: 'python,machine learning,sql', description: 'Work on ML prototypes.' },
-    { id: 4, employer_id: 0, title: 'QA Engineer', company: 'QualityFirst', city: 'Pune', job_type: 'Full-time', salary_min: 400000, salary_max: 800000, exp_min: 2, skills: 'manual testing,selenium,jira,test cases', description: 'Own test cycles.' }
-  ],
-  apps: [{ id: 1, job_id: 1, seeker_id: 3, status: 'Applied' }, { id: 2, job_id: 1, seeker_id: 4, status: 'Applied' }],
-  uid: null
-};
-try { const s = localStorage.getItem('sso_db'); if (s) Object.assign(DB, JSON.parse(s)); } catch (e) {}
-const save = () => { try { localStorage.setItem('sso_db', JSON.stringify(DB)); } catch (e) {} };
-const u0 = DB.users.find(u => u.id === DB.uid); if (u0) Object.assign(S, { token: 'local', role: DB.role || 'seeker', name: u0.name });
-const me = () => DB.users.find(u => u.id === DB.uid);
-let REAL = false;
-async function apiReal(path, method = 'GET', body) {
-  const r = await fetch('/api' + path, { method, headers: { 'Content-Type': 'application/json', ...(S.token ? { Authorization: 'Bearer ' + S.token } : {}) }, body: body ? JSON.stringify(body) : undefined });
-  const j = await r.json().catch(() => ({}));
-  if (!r.ok) throw new Error(j.error || 'Server error (' + r.status + ')');
-  return j;
+var jobs=[
+{id:1,t:"Frontend Developer",c:"PixelWorks",l:"Bengaluru",type:"Full-time",min:1,max:3,pay:"₹5.0 – 10.0 LPA",cat:"tech",sk:["html","css","javascript","git","react"],d:"Build responsive user interfaces and work with designers on a fast-moving product.",n:0},
+{id:2,t:"Node.js Developer",c:"TechNova",l:"Hyderabad",type:"Full-time",min:1,max:5,pay:"₹6.0 – 12.0 LPA",cat:"tech",sk:["node.js","express","mysql","git","rest api"],d:"Build and maintain REST APIs that power our mobile and web apps.",n:0},
+{id:3,t:"QA Engineer",c:"QualityFirst",l:"Pune",type:"Full-time",min:2,max:6,pay:"₹4.0 – 8.0 LPA",cat:"tech",sk:["manual testing","selenium","jira","test cases"],d:"Own test cycles from planning to release sign-off.",n:0},
+{id:4,t:"AI Intern",c:"DataLeaf",l:"Hyderabad",type:"Internship",min:0,max:0,pay:"₹1.2 – 2.4 LPA",cat:"tech",sk:["python","numpy","machine learning","git"],d:"Help our data team clean datasets and train small models.",n:0},
+{id:5,t:"Software Architect",c:"CloudBridge",l:"Bengaluru",type:"Full-time",min:12,max:20,pay:"₹35 – 55 LPA",cat:"tech",sk:["java","aws","system design","microservices","docker"],d:"Define architecture for large distributed systems and mentor senior engineers.",n:0},
+{id:6,t:"HR Executive",c:"PeopleFirst",l:"Mumbai",type:"Full-time",min:0,max:2,pay:"₹3.0 – 5.0 LPA",cat:"non",sk:["communication","recruitment","excel","interviewing"],d:"Handle campus hiring, screening calls and onboarding of new joiners.",n:0},
+{id:7,t:"Sales Manager",c:"MarketMint",l:"Delhi",type:"Full-time",min:5,max:10,pay:"₹10 – 18 LPA",cat:"non",sk:["negotiation","crm","communication","leadership"],d:"Lead a regional sales team and own the quarterly revenue target.",n:0},
+{id:8,t:"Content Writer",c:"WordCraft",l:"Remote",type:"Full-time",min:0,max:3,pay:"₹3.0 – 6.0 LPA",cat:"non",sk:["writing","seo","research","communication"],d:"Write blogs, product pages and email campaigns for B2B clients.",n:0},
+{id:9,t:"Finance Head",c:"LedgerLine",l:"Chennai",type:"Full-time",min:15,max:30,pay:"₹40 – 70 LPA",cat:"non",sk:["accounting","budgeting","excel","leadership","compliance"],d:"Run the finance function, audits and long-term financial planning.",n:0},
+{id:10,t:"Full Stack Developer",c:"StackHouse",l:"Hyderabad",type:"Full-time",min:3,max:8,pay:"₹12 – 22 LPA",cat:"tech",sk:["react","node.js","mysql","git","docker"],d:"Ship features end to end across React front ends and Node services.",n:0}
+];
+var S={view:"auth",tab:"in",user:"",role:"",skills:["html","css","javascript","git","node.js","express","mysql","communication","excel"],applied:{},sel:null,
+f:{lvl:"all",from:1,to:30,cat:"all",q:""}};
+var $=function(i){return document.getElementById(i)};
+function esc(s){return String(s).replace(/[&<>"]/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]})}
+function go(v){S.view=v;S.sel=null;render()}
+ 
+function login(){
+  var n=$("nm")?$("nm").value.trim():"";var e=$("em").value.trim();
+  S.user=n||(e?e.split("@")[0]:"Demo User");
+  go("role");
 }
-async function api(...a) { if (REAL) return apiReal(...a); const r = await apiRaw(...a); save(); return r; }
-async function apiRaw(path, method = 'GET', body) {
-  const [p, qs] = path.split('?'); const q = new URLSearchParams(qs || ''); let m;
-  const fail = m => { throw new Error(m); };
-  if (p === '/login') { const u = DB.users.find(u => u.email === (body.email || '').toLowerCase() && u.password === body.password) || fail('Invalid email or password'); DB.uid = u.id; DB.role = 'seeker'; return { token: 'demo', role: 'seeker', name: u.name }; }
-  if (p === '/register') { if (!body.name || !body.email || !body.password) fail('Missing fields'); if (DB.users.some(u => u.email === body.email.toLowerCase())) fail('Email already registered');
-    const u = { id: DB.users.length + 1, ...body, email: body.email.toLowerCase(), skills: norm(body.skills).join(',') }; DB.users.push(u); DB.uid = u.id; DB.role = 'seeker'; return { token: 'demo', role: 'seeker', name: u.name }; }
-  if (p === '/role') { DB.role = body.role; return { token: 'demo', role: body.role, name: me().name }; }
-  if (p === '/me') { if (method === 'PUT') { Object.assign(me(), { skills: norm(body.skills).join(','), city: body.city }); return { ok: 1 }; } return me(); }
-  if (p === '/jobs' && method === 'GET') {
-    const t = (q.get('q') || '').toLowerCase(), c = (q.get('city') || '').toLowerCase(), ty = q.get('type');
-    let r = DB.jobs.filter(j => (!t || (j.title + j.company + j.skills).toLowerCase().includes(t)) && (!c || j.city.toLowerCase().includes(c)) && (!ty || j.job_type === ty)).slice().reverse();
-    const u = me(); if (u && u.role === 'seeker' && u.skills) { r = r.map(j => ({ ...j, match: match(u.skills, j.skills) })).sort((a, b) => b.match.score - a.match.score); }
-    return r;
+function pickRole(r){S.role=r;go(r==="seeker"?"seeker":"recruiter")}
+function logout(){S.user="";S.role="";S.applied={};go("auth")}
+function switchRole(){go("role")}
+ 
+function match(j){
+  var have=j.sk.filter(function(s){return S.skills.indexOf(s)>-1}).length;
+  return {p:Math.round(have/j.sk.length*100),have:have}
+}
+function filtered(){
+  var f=S.f,q=f.q.toLowerCase();
+  return jobs.filter(function(j){
+    if(f.cat!=="all"&&j.cat!==f.cat)return false;
+    if(f.lvl==="fresher"&&j.min>0)return false;
+    if(f.lvl==="exp"&&(j.max<f.from||j.min>f.to||j.max<1))return false;
+    if(q&&(j.t+" "+j.c+" "+j.sk.join(" ")).toLowerCase().indexOf(q)<0)return false;
+    return true;
+  }).sort(function(a,b){return match(b).p-match(a).p});
+}
+function setF(k,v){S.f[k]=v;render()}
+ 
+function nav(){
+  return '<nav><div class="logo">Smart<b>Skill</b> Opportunity</div><span class="who">'+esc(S.user)+' · '+(S.role==="seeker"?"Job Seeker":"Recruiter")+'</span>'
+  +'<button class="btn o" onclick="switchRole()">Switch role</button><button class="btn" onclick="logout()">Logout</button></nav>';
+}
+ 
+function render(){
+  var a=$("app"),h="";
+  if(S.view==="auth"){
+    h='<div class="center"><div class="box"><div class="logo" style="margin-bottom:14px">Smart<b>Skill</b> Opportunity</div>'
+    +'<h2>'+(S.tab==="in"?"Welcome back":"Create your account")+'</h2><p class="sub">Get hired for what you can do, not just what you wrote.</p>'
+    +'<div class="tabs"><button class="'+(S.tab==="in"?"on":"")+'" onclick="S.tab=\'in\';render()">Log in</button><button class="'+(S.tab==="up"?"on":"")+'" onclick="S.tab=\'up\';render()">Sign up</button></div>'
+    +'<div class="f">'+(S.tab==="up"?'<input id="nm" placeholder="Full name" aria-label="Full name">':'')
+    +'<input id="em" placeholder="Email (anything works)" aria-label="Email"><input id="pw" type="password" placeholder="Password (anything works)" aria-label="Password"></div>'
+    +'<button class="btn" style="width:100%" onclick="login()">'+(S.tab==="in"?"Log in":"Sign up")+'</button>'
+    +'<p class="note">Demo mode: no verification. Any email and password will work, even empty.</p></div></div>';
+  }else if(S.view==="role"){
+    h='<div class="center"><div class="box"><h2>Hi '+esc(S.user)+', who are you?</h2><p class="sub">Pick how you want to use SmartSkill.</p>'
+    +'<div class="roles"><button class="role" onclick="pickRole(\'seeker\')">Job Seeker<span>Find and apply to jobs</span></button>'
+    +'<button class="role" onclick="pickRole(\'recruiter\')">Recruiter<span>Post jobs, get applicants</span></button></div></div></div>';
+  }else if(S.view==="seeker"){
+    var L=filtered();
+    h=nav()+'<div class="layout"><aside>'
+    +'<div><h4>Search</h4><input id="q" value="'+esc(S.f.q)+'" placeholder="Title, company or skill" oninput="S.f.q=this.value;list()"></div>'
+    +'<div><h4>Experience level</h4>'
+    +[["all","All"],["fresher","Fresher"],["exp","Experienced"]].map(function(o){return '<label class="opt"><input type="radio" name="lvl" '+(S.f.lvl===o[0]?"checked":"")+' onchange="setF(\'lvl\',\''+o[0]+'\')">'+o[1]+'</label>'}).join("")
+    +(S.f.lvl==="exp"?'<div class="range" style="margin-top:8px"><input type="number" min="1" max="30" value="'+S.f.from+'" aria-label="From years" onchange="S.f.from=Math.max(1,Math.min(30,+this.value||1));render()"> to <input type="number" min="1" max="30" value="'+S.f.to+'" aria-label="To years" onchange="S.f.to=Math.max(1,Math.min(30,+this.value||30));render()"></div><div class="note">Years of experience (1 to 30)</div>':'')
+    +'</div><div><h4>Job type</h4>'
+    +[["all","All"],["tech","Technical"],["non","Non-technical"]].map(function(o){return '<label class="opt"><input type="radio" name="cat" '+(S.f.cat===o[0]?"checked":"")+' onchange="setF(\'cat\',\''+o[0]+'\')">'+o[1]+'</label>'}).join("")
+    +'</div><div><h4>My skills</h4><input value="'+esc(S.skills.join(", "))+'" onchange="S.skills=this.value.toLowerCase().split(\',\').map(function(s){return s.trim()}).filter(Boolean);render()"><div class="note">Comma separated. Match % updates instantly.</div></div></aside>'
+    +'<main><div id="jl" class="list"></div></main></div>';
+  }else{
+    h=nav()+'<div class="layout" style="grid-template-columns:1fr;max-width:760px"><div class="box" style="width:100%"><h2>Post a job</h2><p class="sub">It appears for job seekers right away.</p>'
+    +'<div class="f"><input id="pt" placeholder="Job title"><div class="row"><input id="pc" placeholder="Company"><input id="pl" placeholder="City"></div>'
+    +'<div class="row"><input id="pmin" type="number" min="0" max="30" placeholder="Min years"><input id="pmax" type="number" min="0" max="30" placeholder="Max years"></div>'
+    +'<select id="pcat"><option value="tech">Technical</option><option value="non">Non-technical</option></select>'
+    +'<input id="psk" placeholder="Required skills, comma separated"><input id="pd" placeholder="Short description"></div>'
+    +'<button class="btn" onclick="post()">Post job</button></div>'
+    +'<h3 style="margin:22px 0 10px">Your jobs and applicants</h3><div class="list">'
+    +jobs.filter(function(j){return j.mine}).map(function(j){return '<div class="job" style="cursor:default"><div><h3>'+esc(j.t)+'</h3><div class="meta">'+esc(j.c)+' · '+esc(j.l)+'</div></div><div class="pct"><b>'+j.n+'</b><small>applicants</small></div></div>'}).join("")
+    +(jobs.some(function(j){return j.mine})?"":'<div class="empty">You have not posted any jobs yet.</div>')+'</div></div>';
   }
-  if (p === '/jobs' && method === 'POST') { if (!body.title || !body.skills) fail('Title and skills required'); const j = { id: DB.jobs.length + 1, employer_id: DB.uid, ...body, company: body.company || me().company || me().name, salary_min: +body.salary_min || 0, salary_max: +body.salary_max || 0, exp_min: +body.exp_min || 0, skills: norm(body.skills).join(',') }; DB.jobs.push(j); return { id: j.id }; }
-  if (p === '/my-jobs') return DB.jobs.filter(j => j.employer_id === DB.uid).map(j => ({ ...j, applicants: DB.apps.filter(a => a.job_id === j.id).length }));
-  if ((m = p.match(/^\/jobs\/(\d+)\/applicants$/))) { const j = DB.jobs.find(j => j.id == m[1]); return DB.apps.filter(a => a.job_id == m[1]).map(a => { const u = DB.users.find(u => u.id === a.seeker_id); return { id: a.id, status: a.status, name: u.name, email: u.email, skills: u.skills, city: u.city, score: match(u.skills, j.skills).score }; }).sort((a, b) => b.score - a.score); }
-  if ((m = p.match(/^\/applications\/(\d+)$/))) { DB.apps.find(a => a.id == m[1]).status = body.status; return { ok: 1 }; }
-  if ((m = p.match(/^\/jobs\/(\d+)\/apply$/))) { if (DB.apps.some(a => a.job_id == m[1] && a.seeker_id === DB.uid)) fail('Already applied'); DB.apps.push({ id: DB.apps.length + 1, job_id: +m[1], seeker_id: DB.uid, status: 'Applied' }); return { ok: 1 }; }
-  if (p === '/my-applications') return DB.apps.filter(a => a.seeker_id === DB.uid).map(a => { const j = DB.jobs.find(j => j.id === a.job_id); return { status: a.status, score: match(me().skills, j.skills).score, title: j.title, company: j.company, city: j.city }; });
-  fail('Not found');
+  a.innerHTML=h;
+  if(S.view==="seeker")list();
+  panel();
 }
-async function demoLogin(r) { setAuth(await api('/login', 'POST', { email: r + '@demo.com', password: 'demo' })); await pick(r); }
-function setAuth(d) { Object.assign(S, d, { token: d.token }); try { localStorage.setItem('sso_s', JSON.stringify({ token: S.token, role: S.role, name: S.name })); } catch (e) {}  }
-function logout() { DB.uid = null; save(); try { localStorage.removeItem('sso_s'); } catch (e) {} S.token = S.role = S.name = null; go('home'); }
-const chips = (arr, cls = '') => arr.map(s => `<span class="chip ${cls}">${esc(s)}</span>`).join('');
-const money = n => n ? '₹' + (n / 100000).toFixed(1) + ' LPA' : '';
-
-let pending = null;
-function nav() {
-  $('#nav').innerHTML = `<button class="ghost" onclick="postClick()">+ Post a Job</button>` + (S.token
-    ? `<span class="mut">${esc(S.name)} · ${S.role === 'employer' ? 'Employer' : 'Job Seeker'}</span>` +
-      (S.role === 'seeker' ? `<button class="ghost" onclick="go('apps')">My Applications</button><button class="ghost" onclick="go('profile')">My Skills</button>`
-                           : `<button class="ghost" onclick="go('dash')">Dashboard</button>`) +
-      `<button class="ghost" onclick="go('choose')">Switch role</button><button onclick="logout()">Logout</button>`
-    : `<button class="ghost" onclick="go('login')">Login</button><button onclick="go('register')">Sign up</button>`);
+ 
+function list(){
+  var L=filtered(),el=$("jl");if(!el)return;
+  el.innerHTML=L.length?L.map(function(j){
+    var m=match(j),col=m.p>=60?"var(--ok)":m.p>0?"var(--mute)":"var(--bad)";
+    return '<div class="job" tabindex="0" onclick="openJob('+j.id+')" onkeydown="if(event.key===\'Enter\')openJob('+j.id+')"><div><h3>'+esc(j.t)+'<span class="tag">'+(j.cat==="tech"?"Technical":"Non-technical")+'</span></h3>'
+    +'<div class="meta">'+esc(j.c)+' · '+esc(j.l)+' · '+j.type+' · '+(j.max===0?"Fresher":j.min+"–"+j.max+" yrs")+' · '+j.pay+'</div>'
+    +'<div class="chips">'+j.sk.map(function(s){return '<span class="chip'+(S.skills.indexOf(s)>-1?"":" m")+'">'+esc(s)+'</span>'}).join("")+'</div></div>'
+    +'<div class="pct"><b style="color:'+col+'">'+m.p+'%</b><small>skill match</small>'+(S.applied[j.id]?'<div class="applied">Applied</div>':'')+'</div></div>';
+  }).join(""):'<div class="empty">No jobs match these filters. Try widening the experience range.</div>';
 }
-function postClick() { if (!S.token) { pending = 'post'; return go('login'); } if (S.role === 'employer') go('post'); else { pending = 'post'; go('choose'); } }
-async function pick(role) { setAuth(await api('/role', 'POST', { role })); const p = pending; pending = null; go(role === 'employer' ? (p === 'post' ? 'post' : 'dash') : 'home'); }
-function go(v, arg) { nav(); (views[v] || views.home)(arg); window.scrollTo(0, 0); }
-
-const views = {
-  async home() {
-    $('#app').innerHTML = `
-    <div class="hero"><h1>Get hired for what you can do, not just what you wrote.</h1>
-      <p>Add your skills once — see your match % and missing skills for every job.</p>
-      <div class="bar"><input id="q" placeholder="Job title, company or skill"><input id="city" placeholder="City">
-      <select id="type"><option value="">Any type</option><option>Full-time</option><option>Internship</option><option>Part-time</option><option>Contract</option></select>
-      <button onclick="search()">Search</button></div></div>
-    <div id="list"></div>`;
-    search();
-  },
-  login() {
-    $('#app').innerHTML = `<div class="card form"><h2>Login</h2>
-      <label>Email</label><input id="email" type="email"><label>Password</label><input id="pw" type="password">
-      <div class="err" id="err"></div><p><button onclick="doLogin()">Login</button></p>
-      <p class="mut">New here? <a href="#" onclick="go('register');return false">Create an account</a></p>
-      <hr style="border:0;border-top:1px solid var(--bd)"><p><b>Hiring?</b> <button class="ghost" onclick="pending='post';go('register')">+ Post a Job</button></p></div>`;
-  },
-  register() {
-    $('#app').innerHTML = `<div class="card form"><h2>Create account</h2>
-      <label>Full name</label><input id="name"><label>Email</label><input id="email" type="email"><label>Password</label><input id="pw" type="password">
-      <label>City</label><input id="rcity">
-      <label>Your skills (job seekers, comma separated)</label><input id="skills" placeholder="node.js, mysql, git">
-      <label>Company name (employers)</label><input id="company">
-      <div class="err" id="err"></div><p><button onclick="doRegister()">Sign up</button></p>
-      <p class="mut">Already have an account? <a href="#" onclick="go('login');return false">Login</a></p></div>`;
-  },
-  choose() {
-    if (!S.token) return go('login');
-    $('#app').innerHTML = `<h2 style="text-align:center">How would you like to continue?</h2>
-      <div class="row" style="justify-content:center;gap:16px;margin-top:20px">
-      <div class="card pick" onclick="pick('seeker')"><div style="font-size:40px">🎯</div><h3>Job Seeker</h3><p class="mut">Find jobs matched to your skills and apply.</p></div>
-      <div class="card pick" onclick="pick('employer')"><div style="font-size:40px">🏢</div><h3>Employer</h3><p class="mut">Post jobs and see applicants ranked by skill match.</p></div></div>`;
-  },
-  async profile() {
-    const u = await api('/me');
-    $('#app').innerHTML = `<div class="card form"><h2>My skills</h2><p class="mut">Jobs are ranked by how well these match.</p>
-      <label>Skills (comma separated)</label><input id="skills" value="${esc(u.skills)}"><label>City</label><input id="rcity" value="${esc(u.city)}">
-      <p><button onclick="saveProfile()">Save</button> <span id="err" class="mut"></span></p></div>`;
-  },
-  async apps() {
-    const a = await api('/my-applications');
-    $('#app').innerHTML = '<h2>My applications</h2>' + (a.map(x => `<div class="card row"><div><b>${esc(x.title)}</b><div class="mut">${esc(x.company)} · ${esc(x.city)}</div></div>
-      <div><span class="chip">${esc(x.status)}</span> <span class="chip y">${x.score}% match</span></div></div>`).join('') || '<p class="mut">No applications yet.</p>');
-  },
-  post() {
-    $('#app').innerHTML = `<div class="card form"><h2>Post a job</h2>
-      <label>Job title</label><input id="t"><label>Company</label><input id="co2"><label>City</label><input id="c"><label>Type</label>
-      <select id="ty"><option>Full-time</option><option>Internship</option><option>Part-time</option><option>Contract</option></select>
-      <label>Salary min (₹/yr)</label><input id="smin" type="number"><label>Salary max (₹/yr)</label><input id="smax" type="number">
-      <label>Min experience (yrs)</label><input id="exp" type="number" value="0">
-      <label>Required skills (comma separated)</label><input id="rs" placeholder="react, css, git">
-      <label>Description</label><textarea id="d" rows="4"></textarea><div class="err" id="err"></div><p><button onclick="postJob()">Publish</button></p></div>`;
-  },
-  async dash() {
-    const jobs = await api('/my-jobs');
-    $('#app').innerHTML = '<h2>My job posts</h2>' + (jobs.map(j => `<div class="card"><div class="row"><div><b>${esc(j.title)}</b><div class="mut">${esc(j.city)} · ${j.applicants} applicant(s)</div></div>
-      <button class="ghost" onclick="applicants(${j.id})">View ranked applicants</button></div><div id="ap${j.id}"></div></div>`).join('') || '<p class="mut">No jobs posted yet.</p>');
-  }
-};
-
-async function search() {
-  const p = new URLSearchParams({ q: $('#q').value, city: $('#city').value, type: $('#type').value });
-  let jobs; try { jobs = await api('/jobs?' + p); } catch (e) { $('#list').innerHTML = '<p class="err">Could not load jobs: ' + esc(e.message) + '</p>'; return; }
-  $('#list').innerHTML = jobs.map(j => `<div class="card row"><div style="flex:1;min-width:240px">
-    <b>${esc(j.title)}</b><div class="mut">${esc(j.company)} · ${esc(j.city)} · ${esc(j.job_type)} · ${j.exp_min}+ yrs ${j.salary_max ? '· ' + money(j.salary_min) + ' – ' + money(j.salary_max) : ''}</div>
-    <p class="mut">${esc(j.description)}</p>
-    ${j.match ? chips(j.match.matched, 'y') + chips(j.match.missing, 'n') : chips(j.skills.split(','))}</div>
-    <div>${j.match ? `<div class="score" style="color:${j.match.score >= 60 ? 'var(--ok)' : 'var(--warn)'}">${j.match.score}%<small>skill match</small></div>` : ''}
-    ${S.role === 'seeker' ? `<button onclick="apply(${j.id})">Apply</button>` : ''}</div></div>`).join('') || '<p class="mut">No jobs found.</p>';
+ 
+function openJob(id){S.sel=id;panel()}
+function closeJob(){S.sel=null;panel()}
+function panel(){
+  var j=jobs.filter(function(x){return x.id===S.sel})[0],L=$("layer");
+  if(!j){L.innerHTML='<div class="ov"></div><div class="slide"></div>';return}
+  var m=match(j),miss=j.sk.filter(function(s){return S.skills.indexOf(s)<0});
+  L.innerHTML='<div class="ov on" onclick="closeJob()"></div><div class="slide on" role="dialog" aria-label="Job details"><button class="x" onclick="closeJob()" aria-label="Close">×</button>'
+  +'<h2 style="margin:0">'+esc(j.t)+'</h2><div class="meta">'+esc(j.c)+' · '+esc(j.l)+'</div>'
+  +'<div class="row" style="margin:16px 0"><div><b>Type</b><div class="meta">'+j.type+'</div></div><div><b>Experience</b><div class="meta">'+(j.max===0?"Fresher":j.min+"–"+j.max+" years")+'</div></div><div><b>Salary</b><div class="meta">'+j.pay+'</div></div></div>'
+  +'<h4 style="margin:0 0 4px">About the role</h4><p style="margin-top:0">'+esc(j.d)+'</p>'
+  +'<h4 style="margin:0 0 4px">Your match: '+m.p+'%</h4><div class="chips" style="margin-top:4px">'+j.sk.map(function(s){return '<span class="chip'+(S.skills.indexOf(s)>-1?"":" m")+'">'+esc(s)+'</span>'}).join("")+'</div>'
+  +'<p class="note">'+(miss.length?"Missing: "+esc(miss.join(", ")):"You have every required skill.")+'</p>'
+  +(S.applied[j.id]?'<p class="applied">You applied with '+esc(S.applied[j.id])+'</p>':'<button class="btn" style="width:100%;margin-top:14px" onclick="askResume()">Apply</button>')
+  +'</div>';
 }
-async function doLogin() {
-  try { setAuth(await api('/login', 'POST', { email: $('#email').value, password: $('#pw').value })); go('choose'); }
-  catch (e) { $('#err').textContent = e.message; }
+ 
+function askResume(){
+  var d=document.createElement("div");d.id="rm";
+  d.innerHTML='<div class="ov on" style="z-index:29"></div><div class="box modal"><h3 style="margin:0 0 4px">Upload your resume</h3><p class="sub">PDF or Word file.</p>'
+  +'<input id="rf" type="file" accept=".pdf,.doc,.docx" onchange="$(\'rok\').disabled=!this.files.length">'
+  +'<div class="row" style="margin-top:16px"><button class="btn o" onclick="$(\'rm\').remove()">Cancel</button><button id="rok" class="btn" disabled onclick="submitApp()">OK</button></div></div>';
+  document.body.appendChild(d);
 }
-function toggleRole() { const e = $('#role').value === 'employer'; $('#co').style.display = e ? '' : 'none'; $('#sk').style.display = e ? 'none' : ''; }
-async function doRegister() {
-  try {
-    setAuth(await api('/register', 'POST', { name: $('#name').value, email: $('#email').value, password: $('#pw').value, city: $('#rcity').value, skills: $('#skills').value, company: $('#company').value }));
-    go('choose');
-  } catch (e) { $('#err').textContent = e.message; }
+function submitApp(){
+  var f=$("rf").files[0];if(!f)return;
+  var j=jobs.filter(function(x){return x.id===S.sel})[0];
+  S.applied[j.id]=f.name;j.n++;
+  $("rm").remove();S.sel=null;panel();list();
+  var t=document.createElement("div");t.className="toast";t.textContent="Applied to "+j.t;document.body.appendChild(t);
+  setTimeout(function(){t.remove()},2600);
 }
-async function saveProfile() { await api('/me', 'PUT', { skills: $('#skills').value, city: $('#rcity').value }); $('#err').textContent = 'Saved ✓'; }
-async function apply(id) {
-  if (!S.token) return go('login');
-  try { await api(`/jobs/${id}/apply`, 'POST'); alert('Applied!'); } catch (e) { alert(e.message); }
+function post(){
+  var t=$("pt").value.trim();if(!t){$("pt").focus();return}
+  jobs.unshift({id:Date.now(),t:t,c:$("pc").value||"Your company",l:$("pl").value||"Remote",type:"Full-time",min:+$("pmin").value||0,max:+$("pmax").value||0,pay:"Not disclosed",cat:$("pcat").value,
+    sk:$("psk").value.toLowerCase().split(",").map(function(s){return s.trim()}).filter(Boolean),d:$("pd").value||"No description added.",n:0,mine:true});
+  render();
 }
-async function postJob() {
-  try {
-    await api('/jobs', 'POST', { title: $('#t').value, company: $('#co2').value, city: $('#c').value, job_type: $('#ty').value, salary_min: $('#smin').value, salary_max: $('#smax').value, exp_min: $('#exp').value, skills: $('#rs').value, description: $('#d').value });
-    go('dash');
-  } catch (e) { $('#err').textContent = e.message; }
-}
-async function applicants(id) {
-  const a = await api(`/jobs/${id}/applicants`);
-  $('#ap' + id).innerHTML = a.map(x => `<div class="row" style="margin-top:10px;border-top:1px solid var(--bd);padding-top:10px"><div><b>${esc(x.name)}</b> <span class="mut">${esc(x.email)} · ${esc(x.city)}</span><div>${chips(x.skills.split(','))}</div></div>
-    <div><span class="chip y">${x.score}% match</span> <select onchange="setStatus(${x.id},this.value)">${['Applied', 'Shortlisted', 'Rejected', 'Hired'].map(s => `<option ${s === x.status ? 'selected' : ''}>${s}</option>`).join('')}</select></div></div>`).join('') || '<p class="mut">No applicants yet.</p>';
-}
-const setStatus = (id, status) => api('/applications/' + id, 'PUT', { status });
-(async () => {
-  try { const r = await fetch('/api/ping'); REAL = r.ok && (await r.json()).ok === true; } catch (e) {}
-  if (REAL) { try { Object.assign(S, JSON.parse(localStorage.getItem('sso_s') || '{}')); } catch (e) {} $('#mode').textContent = '✅ Connected to server database'; }
-  else $('#mode').innerHTML = 'Standalone mode (data saved in this browser). Quick login: <a href="#" onclick="demoLogin(\'seeker\');return false">Job Seeker</a> · <a href="#" onclick="demoLogin(\'employer\');return false">Employer</a>';
-  go('home');
-})();
+render();
 </script>
 </body>
 </html>
