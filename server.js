@@ -1,180 +1,139 @@
-require('dotenv').config();
-const express = require('express');
-const cors = require('cors');
-const bcrypt = require('bcryptjs');
-const jwt = require('jsonwebtoken');
-const mysql = require('mysql2/promise');
-const path = require('path');
 
-const app = express();
-app.use(cors());
-app.use(express.json());
-app.use(express.static(path.join(__dirname, 'public')));
-
-const SECRET = process.env.JWT_SECRET || 'dev-secret';
-const pool = mysql.createPool({
-  host: process.env.DB_HOST || process.env.MYSQLHOST || 'localhost',
-  user: process.env.DB_USER || process.env.MYSQLUSER || 'root',
-  password: process.env.DB_PASSWORD || process.env.MYSQLPASSWORD || '',
-  database: process.env.DB_NAME || process.env.MYSQLDATABASE || 'smart_skill',
-  port: +(process.env.DB_PORT || process.env.MYSQLPORT || 3306),
-  waitForConnections: true, connectionLimit: 10
-});
-
-// ---------- helpers ----------
-const norm = s => String(s || '').split(',').map(x => x.trim().toLowerCase()).filter(Boolean);
-const auth = (role) => (req, res, next) => {
-  try {
-    const t = (req.headers.authorization || '').replace('Bearer ', '');
-    req.user = jwt.verify(t, SECRET);
-    if (role && req.user.role !== role) return res.status(403).json({ error: 'Not allowed' });
-    next();
-  } catch { res.status(401).json({ error: 'Login required' }); }
-};
-// The "smart" part: skill-match score + gap
-function match(seekerSkills, jobSkills) {
-  const have = new Set(norm(seekerSkills));
-  const need = norm(jobSkills);
-  if (!need.length) return { score: 0, matched: [], missing: [] };
-  const matched = need.filter(s => have.has(s));
-  const missing = need.filter(s => !have.has(s));
-  return { score: Math.round(matched.length / need.length * 100), matched, missing };
+var jobs=[
+{id:1,t:"Frontend Developer",c:"PixelWorks",l:"Bengaluru",type:"Full-time",min:1,max:3,pay:"₹5.0 – 10.0 LPA",cat:"tech",sk:["html","css","javascript","git","react"],d:"Build responsive user interfaces and work with designers on a fast-moving product.",n:0},
+{id:2,t:"Node.js Developer",c:"TechNova",l:"Hyderabad",type:"Full-time",min:1,max:5,pay:"₹6.0 – 12.0 LPA",cat:"tech",sk:["node.js","express","mysql","git","rest api"],d:"Build and maintain REST APIs that power our mobile and web apps.",n:0},
+{id:3,t:"QA Engineer",c:"QualityFirst",l:"Pune",type:"Full-time",min:2,max:6,pay:"₹4.0 – 8.0 LPA",cat:"tech",sk:["manual testing","selenium","jira","test cases"],d:"Own test cycles from planning to release sign-off.",n:0},
+{id:4,t:"AI Intern",c:"DataLeaf",l:"Hyderabad",type:"Internship",min:0,max:0,pay:"₹1.2 – 2.4 LPA",cat:"tech",sk:["python","numpy","machine learning","git"],d:"Help our data team clean datasets and train small models.",n:0},
+{id:5,t:"Software Architect",c:"CloudBridge",l:"Bengaluru",type:"Full-time",min:12,max:20,pay:"₹35 – 55 LPA",cat:"tech",sk:["java","aws","system design","microservices","docker"],d:"Define architecture for large distributed systems and mentor senior engineers.",n:0},
+{id:6,t:"HR Executive",c:"PeopleFirst",l:"Mumbai",type:"Full-time",min:0,max:2,pay:"₹3.0 – 5.0 LPA",cat:"non",sk:["communication","recruitment","excel","interviewing"],d:"Handle campus hiring, screening calls and onboarding of new joiners.",n:0},
+{id:7,t:"Sales Manager",c:"MarketMint",l:"Delhi",type:"Full-time",min:5,max:10,pay:"₹10 – 18 LPA",cat:"non",sk:["negotiation","crm","communication","leadership"],d:"Lead a regional sales team and own the quarterly revenue target.",n:0},
+{id:8,t:"Content Writer",c:"WordCraft",l:"Remote",type:"Full-time",min:0,max:3,pay:"₹3.0 – 6.0 LPA",cat:"non",sk:["writing","seo","research","communication"],d:"Write blogs, product pages and email campaigns for B2B clients.",n:0},
+{id:9,t:"Finance Head",c:"LedgerLine",l:"Chennai",type:"Full-time",min:15,max:30,pay:"₹40 – 70 LPA",cat:"non",sk:["accounting","budgeting","excel","leadership","compliance"],d:"Run the finance function, audits and long-term financial planning.",n:0},
+{id:10,t:"Full Stack Developer",c:"StackHouse",l:"Hyderabad",type:"Full-time",min:3,max:8,pay:"₹12 – 22 LPA",cat:"tech",sk:["react","node.js","mysql","git","docker"],d:"Ship features end to end across React front ends and Node services.",n:0}
+];
+var S={view:"auth",tab:"in",user:"",role:"",skills:["html","css","javascript","git","node.js","express","mysql","communication","excel"],applied:{},sel:null,
+f:{lvl:"all",from:1,to:30,cat:"all",q:""}};
+var $=function(i){return document.getElementById(i)};
+function esc(s){return String(s).replace(/[&<>"]/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]})}
+function go(v){S.view=v;S.sel=null;render()}
+ 
+function login(){
+  var n=$("nm")?$("nm").value.trim():"";var e=$("em").value.trim();
+  S.user=n||(e?e.split("@")[0]:"Demo User");
+  go("role");
 }
-
-// ---------- schema + seed ----------
-async function init() {
-  await pool.query(`CREATE TABLE IF NOT EXISTS users(
-    id INT AUTO_INCREMENT PRIMARY KEY, name VARCHAR(100), email VARCHAR(150) UNIQUE,
-    password VARCHAR(100), role ENUM('seeker','employer'), skills TEXT, city VARCHAR(80),
-    company VARCHAR(120), created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`);
-  await pool.query(`CREATE TABLE IF NOT EXISTS jobs(
-    id INT AUTO_INCREMENT PRIMARY KEY, employer_id INT, title VARCHAR(150), company VARCHAR(120),
-    city VARCHAR(80), job_type VARCHAR(30), salary_min INT, salary_max INT, exp_min INT DEFAULT 0,
-    skills TEXT, description TEXT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`);
-  await pool.query(`CREATE TABLE IF NOT EXISTS applications(
-    id INT AUTO_INCREMENT PRIMARY KEY, job_id INT, seeker_id INT, score INT,
-    status VARCHAR(20) DEFAULT 'Applied', created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    UNIQUE KEY uq(job_id, seeker_id))`);
-  const [[{ c }]] = await pool.query('SELECT COUNT(*) c FROM jobs');
-  if (!c) {
-    const seed = [
-      ['Node.js Developer', 'TechNova', 'Hyderabad', 'Full-time', 600000, 1200000, 1, 'node.js,express,mysql,rest api,git', 'Build and maintain REST APIs.'],
-      ['Frontend Developer', 'PixelWorks', 'Bengaluru', 'Full-time', 500000, 1000000, 1, 'html,css,javascript,react,git', 'Build responsive UIs.'],
-      ['AI Intern', 'DataLeaf', 'Hyderabad', 'Internship', 120000, 240000, 0, 'python,machine learning,sql', 'Work on ML prototypes.'],
-      ['QA Engineer', 'QualityFirst', 'Pune', 'Full-time', 400000, 800000, 2, 'manual testing,selenium,jira,test cases', 'Own test cycles.']
-    ];
-    for (const s of seed) await pool.query(
-      'INSERT INTO jobs(title,company,city,job_type,salary_min,salary_max,exp_min,skills,description) VALUES(?,?,?,?,?,?,?,?,?)', s);
-  }
+function pickRole(r){S.role=r;go(r==="seeker"?"seeker":"recruiter")}
+function logout(){S.user="";S.role="";S.applied={};go("auth")}
+function switchRole(){go("role")}
+ 
+function match(j){
+  var have=j.sk.filter(function(s){return S.skills.indexOf(s)>-1}).length;
+  return {p:Math.round(have/j.sk.length*100),have:have}
 }
-
-// ---------- auth ----------
-app.post('/api/register', async (req, res) => {
-  const { name, email, password, skills, city, company } = req.body; const role = 'seeker';
-  if (!name || !email || !password)
-    return res.status(400).json({ error: 'Missing fields' });
-  try {
-    const hash = await bcrypt.hash(password, 10);
-    const [r] = await pool.query(
-      'INSERT INTO users(name,email,password,role,skills,city,company) VALUES(?,?,?,?,?,?,?)',
-      [name, email.toLowerCase(), hash, role, norm(skills).join(','), city || '', company || '']);
-    const token = jwt.sign({ id: r.insertId, role, name }, SECRET, { expiresIn: '7d' });
-    res.json({ token, role, name });
-  } catch (e) {
-    res.status(400).json({ error: e.code === 'ER_DUP_ENTRY' ? 'Email already registered' : 'Could not register' });
+function filtered(){
+  var f=S.f,q=f.q.toLowerCase();
+  return jobs.filter(function(j){
+    if(f.cat!=="all"&&j.cat!==f.cat)return false;
+    if(f.lvl==="fresher"&&j.min>0)return false;
+    if(f.lvl==="exp"&&(j.max<f.from||j.min>f.to||j.max<1))return false;
+    if(q&&(j.t+" "+j.c+" "+j.sk.join(" ")).toLowerCase().indexOf(q)<0)return false;
+    return true;
+  }).sort(function(a,b){return match(b).p-match(a).p});
+}
+function setF(k,v){S.f[k]=v;render()}
+ 
+function nav(){
+  return '<nav><div class="logo">Smart<b>Skill</b> Opportunity</div><span class="who">'+esc(S.user)+' · '+(S.role==="seeker"?"Job Seeker":"Recruiter")+'</span>'
+  +'<button class="btn o" onclick="switchRole()">Switch role</button><button class="btn" onclick="logout()">Logout</button></nav>';
+}
+ 
+function render(){
+  var a=$("app"),h="";
+  if(S.view==="auth"){
+    h='<div class="center"><div class="box"><div class="logo" style="margin-bottom:14px">Smart<b>Skill</b> Opportunity</div>'
+    +'<h2>'+(S.tab==="in"?"Welcome back":"Create your account")+'</h2><p class="sub">Get hired for what you can do, not just what you wrote.</p>'
+    +'<div class="tabs"><button class="'+(S.tab==="in"?"on":"")+'" onclick="S.tab=\'in\';render()">Log in</button><button class="'+(S.tab==="up"?"on":"")+'" onclick="S.tab=\'up\';render()">Sign up</button></div>'
+    +'<div class="f">'+(S.tab==="up"?'<input id="nm" placeholder="Full name" aria-label="Full name">':'')
+    +'<input id="em" placeholder="Email (anything works)" aria-label="Email"><input id="pw" type="password" placeholder="Password (anything works)" aria-label="Password"></div>'
+    +'<button class="btn" style="width:100%" onclick="login()">'+(S.tab==="in"?"Log in":"Sign up")+'</button>'
+    +'<p class="note">Demo mode: no verification. Any email and password will work, even empty.</p></div></div>';
+  }else if(S.view==="role"){
+    h='<div class="center"><div class="box"><h2>Hi '+esc(S.user)+', who are you?</h2><p class="sub">Pick how you want to use SmartSkill.</p>'
+    +'<div class="roles"><button class="role" onclick="pickRole(\'seeker\')">Job Seeker<span>Find and apply to jobs</span></button>'
+    +'<button class="role" onclick="pickRole(\'recruiter\')">Recruiter<span>Post jobs, get applicants</span></button></div></div></div>';
+  }else if(S.view==="seeker"){
+    var L=filtered();
+    h=nav()+'<div class="layout"><aside>'
+    +'<div><h4>Search</h4><input id="q" value="'+esc(S.f.q)+'" placeholder="Title, company or skill" oninput="S.f.q=this.value;list()"></div>'
+    +'<div><h4>Experience level</h4>'
+    +[["all","All"],["fresher","Fresher"],["exp","Experienced"]].map(function(o){return '<label class="opt"><input type="radio" name="lvl" '+(S.f.lvl===o[0]?"checked":"")+' onchange="setF(\'lvl\',\''+o[0]+'\')">'+o[1]+'</label>'}).join("")
+    +(S.f.lvl==="exp"?'<div class="range" style="margin-top:8px"><input type="number" min="1" max="30" value="'+S.f.from+'" aria-label="From years" onchange="S.f.from=Math.max(1,Math.min(30,+this.value||1));render()"> to <input type="number" min="1" max="30" value="'+S.f.to+'" aria-label="To years" onchange="S.f.to=Math.max(1,Math.min(30,+this.value||30));render()"></div><div class="note">Years of experience (1 to 30)</div>':'')
+    +'</div><div><h4>Job type</h4>'
+    +[["all","All"],["tech","Technical"],["non","Non-technical"]].map(function(o){return '<label class="opt"><input type="radio" name="cat" '+(S.f.cat===o[0]?"checked":"")+' onchange="setF(\'cat\',\''+o[0]+'\')">'+o[1]+'</label>'}).join("")
+    +'</div><div><h4>My skills</h4><input value="'+esc(S.skills.join(", "))+'" onchange="S.skills=this.value.toLowerCase().split(\',\').map(function(s){return s.trim()}).filter(Boolean);render()"><div class="note">Comma separated. Match % updates instantly.</div></div></aside>'
+    +'<main><div id="jl" class="list"></div></main></div>';
+  }else{
+    h=nav()+'<div class="layout" style="grid-template-columns:1fr;max-width:760px"><div class="box" style="width:100%"><h2>Post a job</h2><p class="sub">It appears for job seekers right away.</p>'
+    +'<div class="f"><input id="pt" placeholder="Job title"><div class="row"><input id="pc" placeholder="Company"><input id="pl" placeholder="City"></div>'
+    +'<div class="row"><input id="pmin" type="number" min="0" max="30" placeholder="Min years"><input id="pmax" type="number" min="0" max="30" placeholder="Max years"></div>'
+    +'<select id="pcat"><option value="tech">Technical</option><option value="non">Non-technical</option></select>'
+    +'<input id="psk" placeholder="Required skills, comma separated"><input id="pd" placeholder="Short description"></div>'
+    +'<button class="btn" onclick="post()">Post job</button></div>'
+    +'<h3 style="margin:22px 0 10px">Your jobs and applicants</h3><div class="list">'
+    +jobs.filter(function(j){return j.mine}).map(function(j){return '<div class="job" style="cursor:default"><div><h3>'+esc(j.t)+'</h3><div class="meta">'+esc(j.c)+' · '+esc(j.l)+'</div></div><div class="pct"><b>'+j.n+'</b><small>applicants</small></div></div>'}).join("")
+    +(jobs.some(function(j){return j.mine})?"":'<div class="empty">You have not posted any jobs yet.</div>')+'</div></div>';
   }
-});
-app.post('/api/login', async (req, res) => {
-  const [[u]] = await pool.query('SELECT * FROM users WHERE email=?', [(req.body.email || '').toLowerCase()]);
-  if (!u || !(await bcrypt.compare(req.body.password || '', u.password)))
-    return res.status(401).json({ error: 'Invalid email or password' });
-  res.json({ token: jwt.sign({ id: u.id, role: 'seeker', name: u.name }, SECRET, { expiresIn: '7d' }), role: 'seeker', name: u.name });
-});
-app.get('/api/ping', (req, res) => res.json({ ok: true }));
-app.post('/api/role', auth(), (req, res) => {
-  const role = req.body.role === 'employer' ? 'employer' : 'seeker';
-  res.json({ token: jwt.sign({ id: req.user.id, role, name: req.user.name }, SECRET, { expiresIn: '7d' }), role, name: req.user.name });
-});
-app.get('/api/me', auth(), async (req, res) => {
-  const [[u]] = await pool.query('SELECT id,name,email,role,skills,city,company FROM users WHERE id=?', [req.user.id]);
-  res.json(u);
-});
-app.put('/api/me', auth(), async (req, res) => {
-  const { skills, city, company } = req.body;
-  await pool.query('UPDATE users SET skills=?, city=?, company=COALESCE(?,company) WHERE id=?',
-    [norm(skills).join(','), city || '', company ?? null, req.user.id]);
-  res.json({ ok: true });
-});
-
-// ---------- jobs ----------
-app.get('/api/jobs', async (req, res) => {
-  const { q, city, type, skills } = req.query;
-  let sql = 'SELECT * FROM jobs WHERE 1=1'; const p = [];
-  if (q) { sql += ' AND (title LIKE ? OR company LIKE ? OR skills LIKE ?)'; p.push(`%${q}%`, `%${q}%`, `%${q}%`); }
-  if (city) { sql += ' AND city LIKE ?'; p.push(`%${city}%`); }
-  if (type) { sql += ' AND job_type=?'; p.push(type); }
-  sql += ' ORDER BY created_at DESC LIMIT 100';
-  const [rows] = await pool.query(sql, p);
-  let mine = skills || '';
-  try { // logged-in seekers get matched against their saved profile
-    const t = (req.headers.authorization || '').replace('Bearer ', '');
-    const u = jwt.verify(t, SECRET);
-    if (u.role === 'seeker' && !mine) {
-      const [[s]] = await pool.query('SELECT skills FROM users WHERE id=?', [u.id]); mine = s.skills;
-    }
-  } catch {}
-  const out = rows.map(j => ({ ...j, ...(mine ? { match: match(mine, j.skills) } : {}) }));
-  if (mine) out.sort((a, b) => b.match.score - a.match.score);
-  res.json(out);
-});
-app.post('/api/jobs', auth('employer'), async (req, res) => {
-  const j = req.body;
-  if (!j.title || !j.skills) return res.status(400).json({ error: 'Title and skills required' });
-  const [[u]] = await pool.query('SELECT company FROM users WHERE id=?', [req.user.id]);
-  const [r] = await pool.query(
-    'INSERT INTO jobs(employer_id,title,company,city,job_type,salary_min,salary_max,exp_min,skills,description) VALUES(?,?,?,?,?,?,?,?,?,?)',
-    [req.user.id, j.title, j.company || u.company || req.user.name, j.city || '', j.job_type || 'Full-time',
-     +j.salary_min || 0, +j.salary_max || 0, +j.exp_min || 0, norm(j.skills).join(','), j.description || '']);
-  res.json({ id: r.insertId });
-});
-app.get('/api/my-jobs', auth('employer'), async (req, res) => {
-  const [rows] = await pool.query(
-    `SELECT j.*, (SELECT COUNT(*) FROM applications a WHERE a.job_id=j.id) applicants
-     FROM jobs j WHERE employer_id=? ORDER BY created_at DESC`, [req.user.id]);
-  res.json(rows);
-});
-app.get('/api/jobs/:id/applicants', auth('employer'), async (req, res) => {
-  const [rows] = await pool.query(
-    `SELECT a.id, a.score, a.status, u.name, u.email, u.skills, u.city
-     FROM applications a JOIN users u ON u.id=a.seeker_id
-     JOIN jobs j ON j.id=a.job_id WHERE a.job_id=? AND j.employer_id=? ORDER BY a.score DESC`,
-    [req.params.id, req.user.id]);
-  res.json(rows);
-});
-app.put('/api/applications/:id', auth('employer'), async (req, res) => {
-  await pool.query(
-    `UPDATE applications a JOIN jobs j ON j.id=a.job_id SET a.status=? WHERE a.id=? AND j.employer_id=?`,
-    [req.body.status, req.params.id, req.user.id]);
-  res.json({ ok: true });
-});
-
-// ---------- applications ----------
-app.post('/api/jobs/:id/apply', auth('seeker'), async (req, res) => {
-  const [[j]] = await pool.query('SELECT skills FROM jobs WHERE id=?', [req.params.id]);
-  const [[u]] = await pool.query('SELECT skills FROM users WHERE id=?', [req.user.id]);
-  if (!j) return res.status(404).json({ error: 'Job not found' });
-  try {
-    await pool.query('INSERT INTO applications(job_id,seeker_id,score) VALUES(?,?,?)',
-      [req.params.id, req.user.id, match(u.skills, j.skills).score]);
-    res.json({ ok: true });
-  } catch { res.status(400).json({ error: 'Already applied' }); }
-});
-app.get('/api/my-applications', auth('seeker'), async (req, res) => {
-  const [rows] = await pool.query(
-    `SELECT a.status, a.score, a.created_at, j.title, j.company, j.city
-     FROM applications a JOIN jobs j ON j.id=a.job_id WHERE a.seeker_id=? ORDER BY a.created_at DESC`, [req.user.id]);
-  res.json(rows);
-});
-
-init().then(() => app.listen(process.env.PORT || 3000, () => console.log('Smart Skill Opportunity running')))
-  .catch(e => { console.error('DB init failed:', e.message); process.exit(1); });
+  a.innerHTML=h;
+  if(S.view==="seeker")list();
+  panel();
+}
+ 
+function list(){
+  var L=filtered(),el=$("jl");if(!el)return;
+  el.innerHTML=L.length?L.map(function(j){
+    var m=match(j),col=m.p>=60?"var(--ok)":m.p>0?"var(--mute)":"var(--bad)";
+    return '<div class="job" tabindex="0" onclick="openJob('+j.id+')" onkeydown="if(event.key===\'Enter\')openJob('+j.id+')"><div><h3>'+esc(j.t)+'<span class="tag">'+(j.cat==="tech"?"Technical":"Non-technical")+'</span></h3>'
+    +'<div class="meta">'+esc(j.c)+' · '+esc(j.l)+' · '+j.type+' · '+(j.max===0?"Fresher":j.min+"–"+j.max+" yrs")+' · '+j.pay+'</div>'
+    +'<div class="chips">'+j.sk.map(function(s){return '<span class="chip'+(S.skills.indexOf(s)>-1?"":" m")+'">'+esc(s)+'</span>'}).join("")+'</div></div>'
+    +'<div class="pct"><b style="color:'+col+'">'+m.p+'%</b><small>skill match</small>'+(S.applied[j.id]?'<div class="applied">Applied</div>':'')+'</div></div>';
+  }).join(""):'<div class="empty">No jobs match these filters. Try widening the experience range.</div>';
+}
+ 
+function openJob(id){S.sel=id;panel()}
+function closeJob(){S.sel=null;panel()}
+function panel(){
+  var j=jobs.filter(function(x){return x.id===S.sel})[0],L=$("layer");
+  if(!j){L.innerHTML='<div class="ov"></div><div class="slide"></div>';return}
+  var m=match(j),miss=j.sk.filter(function(s){return S.skills.indexOf(s)<0});
+  L.innerHTML='<div class="ov on" onclick="closeJob()"></div><div class="slide on" role="dialog" aria-label="Job details"><button class="x" onclick="closeJob()" aria-label="Close">×</button>'
+  +'<h2 style="margin:0">'+esc(j.t)+'</h2><div class="meta">'+esc(j.c)+' · '+esc(j.l)+'</div>'
+  +'<div class="row" style="margin:16px 0"><div><b>Type</b><div class="meta">'+j.type+'</div></div><div><b>Experience</b><div class="meta">'+(j.max===0?"Fresher":j.min+"–"+j.max+" years")+'</div></div><div><b>Salary</b><div class="meta">'+j.pay+'</div></div></div>'
+  +'<h4 style="margin:0 0 4px">About the role</h4><p style="margin-top:0">'+esc(j.d)+'</p>'
+  +'<h4 style="margin:0 0 4px">Your match: '+m.p+'%</h4><div class="chips" style="margin-top:4px">'+j.sk.map(function(s){return '<span class="chip'+(S.skills.indexOf(s)>-1?"":" m")+'">'+esc(s)+'</span>'}).join("")+'</div>'
+  +'<p class="note">'+(miss.length?"Missing: "+esc(miss.join(", ")):"You have every required skill.")+'</p>'
+  +(S.applied[j.id]?'<p class="applied">You applied with '+esc(S.applied[j.id])+'</p>':'<button class="btn" style="width:100%;margin-top:14px" onclick="askResume()">Apply</button>')
+  +'</div>';
+}
+ 
+function askResume(){
+  var d=document.createElement("div");d.id="rm";
+  d.innerHTML='<div class="ov on" style="z-index:29"></div><div class="box modal"><h3 style="margin:0 0 4px">Upload your resume</h3><p class="sub">PDF or Word file.</p>'
+  +'<input id="rf" type="file" accept=".pdf,.doc,.docx" onchange="$(\'rok\').disabled=!this.files.length">'
+  +'<div class="row" style="margin-top:16px"><button class="btn o" onclick="$(\'rm\').remove()">Cancel</button><button id="rok" class="btn" disabled onclick="submitApp()">OK</button></div></div>';
+  document.body.appendChild(d);
+}
+function submitApp(){
+  var f=$("rf").files[0];if(!f)return;
+  var j=jobs.filter(function(x){return x.id===S.sel})[0];
+  S.applied[j.id]=f.name;j.n++;
+  $("rm").remove();S.sel=null;panel();list();
+  var t=document.createElement("div");t.className="toast";t.textContent="Applied to "+j.t;document.body.appendChild(t);
+  setTimeout(function(){t.remove()},2600);
+}
+function post(){
+  var t=$("pt").value.trim();if(!t){$("pt").focus();return}
+  jobs.unshift({id:Date.now(),t:t,c:$("pc").value||"Your company",l:$("pl").value||"Remote",type:"Full-time",min:+$("pmin").value||0,max:+$("pmax").value||0,pay:"Not disclosed",cat:$("pcat").value,
+    sk:$("psk").value.toLowerCase().split(",").map(function(s){return s.trim()}).filter(Boolean),d:$("pd").value||"No description added.",n:0,mine:true});
+  render();
+}
+render();
